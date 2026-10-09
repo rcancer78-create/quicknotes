@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using QuickNotes.App.Data;
 using QuickNotes.App.Helpers;
 using QuickNotes.App.Models;
 using QuickNotes.App.Models.Sync;
@@ -168,8 +169,15 @@ public static class UxC11UiSmokeRunner
     private static void SeedCards(MainViewModel vm)
     {
         using var db = vm.ContextFactory();
+        SeedCards(db);
+    }
+
+    internal static void SeedCards(QuickNotesDbContext db)
+    {
         string[] titles = { LocalTitle, PendingTitle, CloudTitle, ConflictTitle, ErrorTitle };
-        if (db.Notes.Any(n => titles.Contains(n.Title)))
+        // Keep span overloads out of EF's expression tree on newer SDKs: EF8's
+        // parameter interpreter cannot evaluate a ref-struct conversion.
+        if (db.Notes.Any(n => Enumerable.Contains(titles, n.Title)))
         {
             return;
         }

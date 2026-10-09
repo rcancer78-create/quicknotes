@@ -39,8 +39,28 @@ internal static class WindowsCiWorkflowRules
         if (doc.Jobs.Count == 0)
             errors.Add("Windows CI workflow must declare a job.");
 
+        if (!doc.Jobs.Any(static job => job.Id == "windows-release"))
+            errors.Add("Windows CI must declare the authoritative windows-release job.");
+
         foreach (GitHubWorkflowYaml.WorkflowJob job in doc.Jobs)
-            EvaluateJob(job, errors);
+        {
+            if (job.Id == "package-windows")
+            {
+                // Packaging is downstream of the complete verification job; it must not
+                // duplicate format/build/test or run when verification has failed.
+                if (job.Needs != "windows-release" || !string.IsNullOrWhiteSpace(job.Condition))
+                    errors.Add("Windows packaging must depend on successful windows-release with the default success condition.");
+                if (GitHubWorkflowYaml.ParsePositiveInt(job.TimeoutMinutes) is null || job.Steps.Count == 0)
+                    errors.Add("Windows packaging must declare steps and timeout-minutes.");
+                if (!job.Steps.Any(static step => HasRunToken(step.Run, "dotnet publish")))
+                    errors.Add("Windows packaging must publish the application.");
+                EvaluateSecretRules(job.Steps, errors);
+            }
+            else
+            {
+                EvaluateJob(job, errors);
+            }
+        }
 
         return errors;
     }
@@ -104,6 +124,11 @@ internal static class WindowsCiWorkflowRules
         if (test >= 0 && TestFilter.IsMatch(steps[test].Run))
             errors.Add("Authoritative test run must not use --filter.");
 
+        EvaluateSecretRules(steps, errors);
+    }
+
+    private static void EvaluateSecretRules(IReadOnlyList<GitHubWorkflowYaml.WorkflowStep> steps, List<string> errors)
+    {
         foreach (GitHubWorkflowYaml.WorkflowStep step in steps)
         {
             if (LiveCloudEnv.IsMatch(step.Run) || step.Env.Keys.Any(static k => LiveCloudEnv.IsMatch(k)))

@@ -71,11 +71,20 @@ public sealed class WorkspaceFullscreenTests
         window.UpdateLayout();
         window.Show();
         ThreePaneUiSmokeRunner.DoEvents();
-        window.Left = left;
-        window.Top = top;
-        window.Width = width;
-        window.Height = height;
+
+        // Fullscreen exit deliberately clamps to the current monitor. Start the
+        // round trip on-screen even on a small hosted desktop, after HWND/DPI setup.
+        var bounds = WorkspaceLayoutHelper.ClampWindowBounds(
+            left, top, width, height, MainWindow.GetCurrentScreenWorkAreas(window), SystemParameters.WorkArea);
+        window.Width = bounds.Width;
+        window.Height = bounds.Height;
+        window.Left = bounds.Left;
+        window.Top = bounds.Top;
         ThreePaneUiSmokeRunner.DoEvents();
+        Assert.True(Math.Abs(window.Left - bounds.Left) < 1.0);
+        Assert.True(Math.Abs(window.Top - bounds.Top) < 1.0);
+        Assert.True(Math.Abs(window.Width - bounds.Width) < 1.0);
+        Assert.True(Math.Abs(window.Height - bounds.Height) < 1.0);
     }
 
     #region Layout Helper Clamp Unit Tests
@@ -139,6 +148,25 @@ public sealed class WorkspaceFullscreenTests
         Assert.Equal(primaryWorkArea.Top, result.Top);
         Assert.Equal(primaryWorkArea.Width, result.Width);
         Assert.Equal(primaryWorkArea.Height, result.Height);
+    }
+
+    [Theory]
+    [InlineData(120, 90, 1050, 710, 0, 58, 1024)]
+    [InlineData(140, 110, 1020, 690, 4, 78, 1020)]
+    [InlineData(130, 95, 1080, 720, 0, 48, 1024)]
+    [InlineData(150, 100, 1000, 680, 24, 88, 1000)]
+    public void WorkspaceLayoutHelper_ClampWindowBounds_SmallDesktop_PreservesVisibleRestoreBounds(
+        double left, double top, double width, double height,
+        double expectedLeft, double expectedTop, double expectedWidth)
+    {
+        var workArea = new Rect(0, 0, 1024, 768);
+
+        var result = WorkspaceLayoutHelper.ClampWindowBounds(left, top, width, height, workArea);
+
+        Assert.Equal(new Rect(expectedLeft, expectedTop, expectedWidth, height), result);
+        Assert.True(workArea.Contains(result));
+        Assert.Equal(result, WorkspaceLayoutHelper.ClampWindowBounds(
+            result.Left, result.Top, result.Width, result.Height, workArea));
     }
 
     [Fact]
@@ -233,10 +261,6 @@ public sealed class WorkspaceFullscreenTests
                     Assert.Equal(preTop, window.Top);
                     Assert.Equal(preWidth, window.Width);
                     Assert.Equal(preHeight, window.Height);
-                    Assert.True(Math.Abs(window.Left - 120) < 1.0);
-                    Assert.True(Math.Abs(window.Top - 90) < 1.0);
-                    Assert.True(Math.Abs(window.Width - 1050) < 1.0);
-                    Assert.True(Math.Abs(window.Height - 710) < 1.0);
 
                     // --- Part 2: Toggle fullscreen from WindowState.Maximized ---
                     window.WindowState = WindowState.Maximized;
@@ -309,10 +333,6 @@ public sealed class WorkspaceFullscreenTests
                     Assert.Equal(preTop, window.Top);
                     Assert.Equal(preWidth, window.Width);
                     Assert.Equal(preHeight, window.Height);
-                    Assert.True(Math.Abs(window.Left - 140) < 1.0);
-                    Assert.True(Math.Abs(window.Top - 110) < 1.0);
-                    Assert.True(Math.Abs(window.Width - 1020) < 1.0);
-                    Assert.True(Math.Abs(window.Height - 690) < 1.0);
                 }
                 finally
                 {
@@ -372,10 +392,6 @@ public sealed class WorkspaceFullscreenTests
                     Assert.Equal(preTop, window.Top);
                     Assert.Equal(preWidth, window.Width);
                     Assert.Equal(preHeight, window.Height);
-                    Assert.True(Math.Abs(window.Left - 130) < 1.0);
-                    Assert.True(Math.Abs(window.Top - 95) < 1.0);
-                    Assert.True(Math.Abs(window.Width - 1080) < 1.0);
-                    Assert.True(Math.Abs(window.Height - 720) < 1.0);
                 }
                 finally
                 {
@@ -520,6 +536,7 @@ public sealed class WorkspaceFullscreenTests
                 {
                     var (window, vm) = fixture;
                     PrepareWindow(window, left: 150, top: 100, width: 1000, height: 680);
+                    var normalBounds = new Rect(window.Left, window.Top, window.Width, window.Height);
                     try
                     {
                         // --- Part 1: CloseMainWindowDecision.Hide while fullscreen ---
@@ -569,10 +586,12 @@ public sealed class WorkspaceFullscreenTests
                             var settings = JsonSerializer.Deserialize<AppSettings>(settingsJson);
                             Assert.NotNull(settings);
                             Assert.Equal(WindowState.Normal, settings.WindowState);
-                            Assert.True(Math.Abs((settings.WindowLeft ?? 0) - 150) < 2.0);
-                            Assert.True(Math.Abs((settings.WindowTop ?? 0) - 100) < 2.0);
-                            Assert.True(Math.Abs(settings.WindowWidth - 1000) < 2.0);
-                            Assert.True(Math.Abs(settings.WindowHeight - 680) < 2.0);
+                            Assert.NotNull(settings.WindowLeft);
+                            Assert.NotNull(settings.WindowTop);
+                            Assert.Equal(normalBounds.Left, settings.WindowLeft.Value);
+                            Assert.Equal(normalBounds.Top, settings.WindowTop.Value);
+                            Assert.Equal(normalBounds.Width, settings.WindowWidth);
+                            Assert.Equal(normalBounds.Height, settings.WindowHeight);
                         }
                         finally
                         {

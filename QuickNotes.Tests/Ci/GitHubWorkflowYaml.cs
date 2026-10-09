@@ -362,6 +362,8 @@ internal static class GitHubWorkflowYaml
         public string Id { get; }
         public string? TimeoutMinutes { get; }
         public string? Environment { get; }
+        public string? Needs { get; private set; }
+        public string? Condition { get; private set; }
         public IReadOnlyList<WorkflowStep> Steps { get; }
 
         public static WorkflowJob From(string id, YamlMapping map)
@@ -383,7 +385,11 @@ internal static class GitHubWorkflowYaml
                     steps.Add(WorkflowStep.From(item.AsMapping()));
             }
 
-            return new WorkflowJob(id, timeout, environment, steps);
+            return new WorkflowJob(id, timeout, environment, steps)
+            {
+                Needs = map.TryGet("needs", out YamlNode needs) ? needs.AsScalar() : null,
+                Condition = map.TryGet("if", out YamlNode condition) ? condition.AsScalar() : null
+            };
         }
     }
 

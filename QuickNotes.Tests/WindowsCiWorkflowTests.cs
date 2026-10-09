@@ -26,6 +26,15 @@ public sealed class WindowsCiWorkflowTests
     }
 
     [Fact]
+    public void Packaging_CannotRunWithoutSuccessfulAuthoritativeTests()
+    {
+        AssertContainsError(MutateReal(static text => WorkflowTextMutation.Replace(
+            text, "    needs: windows-release", "    needs: missing-job")), "depend on successful");
+        AssertContainsError(MutateReal(static text => WorkflowTextMutation.Replace(
+            text, "    needs: windows-release", "    needs: windows-release\n    if: always()")), "depend on successful");
+    }
+
+    [Fact]
     public void Parser_IgnoresCommentedFormatGate()
     {
         const string yaml = """
