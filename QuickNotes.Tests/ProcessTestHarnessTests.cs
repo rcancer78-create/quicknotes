@@ -22,16 +22,27 @@ public sealed class ProcessTestHarnessTests
     [Fact]
     public void Run_TimeoutKillsChildWithOpenPipesAndIncludesPartialOutput()
     {
+        // Emit both markers before blocking on our open stdin pipe. A PowerShell
+        // cold start can consume the deadline before its script writes anything.
+        var startInfo = new ProcessStartInfo(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe"))
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            ArgumentList = { "/d", "/q", "/c", "echo out-fixture & echo waiting-fixture 1>&2 & set /p fixture=" }
+        };
         var stopwatch = Stopwatch.StartNew();
-        var error = Assert.Throws<TimeoutException>(() => ProcessTestHarness.Run(PowerShell(
-            "[Console]::Out.WriteLine($PID); [Console]::Out.Flush(); " +
-            "[Console]::Error.WriteLine('waiting-fixture'); [Console]::Error.Flush(); Start-Sleep -Seconds 60"),
-            TimeSpan.FromSeconds(5)));
+        var error = Assert.Throws<TimeoutException>(() =>
+            ProcessTestHarness.Run(startInfo, TimeSpan.FromSeconds(5)));
 
         Assert.Contains("waiting-fixture", error.Message);
+        Assert.Contains("out-fixture", error.Message);
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(15), error.Message);
-        string output = error.Message.Split("stdout:\n", StringSplitOptions.None)[1];
-        int childId = int.Parse(output.Split('\n')[0].Trim(), CultureInfo.InvariantCulture);
+        string diagnostics = error.Message.Split("Child PID ", StringSplitOptions.None)[1];
+        int childId = int.Parse(diagnostics.Split(';')[0], CultureInfo.InvariantCulture);
         Assert.Throws<ArgumentException>(() => Process.GetProcessById(childId));
     }
 
