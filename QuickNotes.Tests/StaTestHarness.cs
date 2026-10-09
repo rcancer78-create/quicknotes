@@ -64,7 +64,7 @@ internal static class StaTestHarness
         {
             try
             {
-                var app = new QuickNotes.App.App
+                var app = new QuickNotes.App.App(resourcesOnly: true)
                 {
                     ShutdownMode = ShutdownMode.OnExplicitShutdown
                 };

@@ -13,8 +13,17 @@ namespace QuickNotes.App;
 
 public partial class App : System.Windows.Application
 {
-    public App()
+    private readonly bool _resourcesOnly;
+
+    public App() : this(resourcesOnly: false)
     {
+    }
+
+    // The testhost needs the real App.xaml resources, but owns its own windows
+    // and services. WPF queues OnStartup even when only Dispatcher.Run is used.
+    internal App(bool resourcesOnly)
+    {
+        _resourcesOnly = resourcesOnly;
         InitializeComponent();
     }
 
@@ -24,6 +33,11 @@ public partial class App : System.Windows.Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        if (_resourcesOnly)
+        {
+            return;
+        }
+
         var startupStopwatch = System.Diagnostics.Stopwatch.StartNew();
         var isolatedOptions = IsolatedProfileAppCli.Parse(e.Args);
         var phases = isolatedOptions.PerfStartup

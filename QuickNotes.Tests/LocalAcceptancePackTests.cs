@@ -197,7 +197,7 @@ public sealed class LocalAcceptancePackTests
     }
 
     [Fact]
-    public void FilteredTesthost_CloudUsageFilter_StartsPumpingDispatcher_Repeatedly()
+    public void FilteredTesthost_CloudUsageFilter_LoadsWithoutDispatcherStartup_Repeatedly()
     {
         string repo = CiReportingConfigTests.FindRepoRoot();
         string csproj = Path.Combine(repo, "QuickNotes.Tests", "QuickNotes.Tests.csproj");

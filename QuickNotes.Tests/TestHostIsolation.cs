@@ -21,6 +21,8 @@ internal static class TestHostIsolation
         Directory.CreateDirectory(Path.Combine(dir, "Logs"));
         QuickNotesDbContext.ProfileDirectoryOverride = dir;
         ErrorLogService.LogDirectoryOverride = Path.Combine(dir, "Logs");
-        StaTestHarness.EnsurePumpingDispatcher();
+        // Module initialization must not wait for code on another thread in this
+        // assembly: dispatcher callbacks can wait for the module initializer itself.
+        // UI tests start the shared dispatcher lazily through their STA harness.
     }
 }
