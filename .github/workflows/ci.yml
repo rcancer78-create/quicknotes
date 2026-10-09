@@ -45,6 +45,7 @@ jobs:
         run: dotnet build "$env:GITHUB_WORKSPACE\QuickNotes.sln" -c Release --no-restore -warnaserror
 
       - name: Full test suite
+        # Child-process tests enforce 120s deadlines and need time to report/clean up.
         run: >
           dotnet test "$env:GITHUB_WORKSPACE\QuickNotes.sln"
           -c Release
@@ -52,7 +53,7 @@ jobs:
           --no-restore
           --nologo
           --blame-hang
-          --blame-hang-timeout 2m
+          --blame-hang-timeout 3m
           --logger "trx;LogFileName=test-results.trx"
           --results-directory "$env:GITHUB_WORKSPACE\artifacts\ci\test-results"
 

@@ -23,6 +23,7 @@ internal static class TestCategoryInference
             || classBody.Contains("new QuickNotesDbContext", StringComparison.Ordinal)
             || classBody.Contains("ArchiveFx", StringComparison.Ordinal)
             || classBody.Contains("Process.Start", StringComparison.Ordinal)
+            || classBody.Contains("ProcessTestHarness.Run", StringComparison.Ordinal)
             || classBody.Contains("ApplicationCompositionRoot.Create", StringComparison.Ordinal)
             || classBody.Contains("DpapiS3CredentialsStorage", StringComparison.Ordinal)
             || classBody.Contains("DpapiSyncPasswordStorage", StringComparison.Ordinal)

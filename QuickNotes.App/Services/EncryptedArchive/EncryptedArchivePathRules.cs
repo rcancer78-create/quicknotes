@@ -181,8 +181,12 @@ internal static class EncryptedArchivePathRules
 
     internal static void EnsureNotLiveProfile(string destinationFullPath)
     {
-        string liveRoot = Path.GetFullPath(QuickNotesDbContext.GetDefaultProfileDirectory());
-        if (IsSameOrNestedPath(destinationFullPath, liveRoot))
+        // An isolated-profile override changes the active profile, but must never remove
+        // protection from the real user profile (including before its first launch).
+        string liveRoot = QuickNotesDbContext.LiveProfileDirectory;
+        string activeRoot = QuickNotesDbContext.GetDefaultProfileDirectory();
+        if (IsSameOrNestedPath(destinationFullPath, liveRoot)
+            || IsSameOrNestedPath(destinationFullPath, activeRoot))
         {
             throw new EncryptedArchiveValidationException("Восстановление в живой профиль не поддерживается.");
         }

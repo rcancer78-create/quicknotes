@@ -49,11 +49,13 @@ public static class UxC11UiSmokeRunner
         {
             try
             {
+                Console.WriteLine("QN_UX_C11_SMOKE_STAGE:loaded");
                 SuppressBlockingFirstRun(window);
                 await Task.Delay(80);
                 string outputDir = ResolveOutputDir(explicitOutputDir);
                 Run(window, outputDir);
                 Console.WriteLine(SuccessMarker);
+                Console.WriteLine("QN_UX_C11_SMOKE_STAGE:shutdown");
                 System.Windows.Application.Current.Shutdown(0);
             }
             catch (Exception ex)
@@ -98,6 +100,7 @@ public static class UxC11UiSmokeRunner
         }
 
         SuppressBlockingFirstRun(window);
+        Console.WriteLine("QN_UX_C11_SMOKE_STAGE:seed");
         SeedCards(vm);
         vm.ReloadAll();
         ApplyStatuses(vm);
@@ -107,6 +110,7 @@ public static class UxC11UiSmokeRunner
         {
             foreach (var theme in new[] { AppTheme.Light, AppTheme.Dark })
             {
+                Console.WriteLine($"QN_UX_C11_SMOKE_STAGE:{scene.Prefix}:{theme}");
                 ThemeService.ApplyTheme(theme);
                 vm.IsNarrow = false;
                 vm.IsDetailActiveInNarrow = false;

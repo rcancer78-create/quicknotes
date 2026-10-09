@@ -754,14 +754,9 @@ public sealed class ThreePaneWorkspaceSmokeTests
                 CreateNoWindow = true
             };
 
-            using var process = Process.Start(psi);
-            Assert.NotNull(process);
-
-            string stdout = process.StandardOutput.ReadToEnd();
-            string stderr = process.StandardError.ReadToEnd();
-            bool exited = process.WaitForExit(30000);
-
-            Assert.True(exited, $"QuickNotes.App smoke process did not exit within 30s. Stderr: {stderr}");
+            var process = ProcessTestHarness.Run(psi, TimeSpan.FromMilliseconds(30000));
+            string stdout = process.StandardOutput;
+            string stderr = process.StandardError;
             Assert.Equal(0, process.ExitCode);
             Assert.Contains("QN_THREE_PANE_SMOKE_SUCCESS", stdout);
 

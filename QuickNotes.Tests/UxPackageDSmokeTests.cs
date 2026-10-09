@@ -121,12 +121,9 @@ public sealed class UxPackageDSmokeTests
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(psi);
-            Assert.NotNull(process);
-            string stdout = process.StandardOutput.ReadToEnd();
-            string stderr = process.StandardError.ReadToEnd();
-            bool exited = process.WaitForExit(120000);
-            Assert.True(exited, "smoke process hung");
+            var process = ProcessTestHarness.Run(psi, TimeSpan.FromMilliseconds(120000));
+            string stdout = process.StandardOutput;
+            string stderr = process.StandardError;
             Assert.True(process.ExitCode == 0, stdout + stderr);
             Assert.Contains(UxPackageDUiSmokeRunner.SuccessMarker, stdout);
             Assert.True(File.Exists(Path.Combine(tempArtifacts, UxPackageDUiSmokeRunner.ContrastReportFileName)));

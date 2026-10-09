@@ -113,12 +113,9 @@ public sealed class SyncConflictSmokeTests
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
-            using var process = Process.Start(psi);
-            Assert.NotNull(process);
-            string stdout = process.StandardOutput.ReadToEnd();
-            string stderr = process.StandardError.ReadToEnd();
-            bool exited = process.WaitForExit(60000);
-            Assert.True(exited, "smoke process hung");
+            var process = ProcessTestHarness.Run(psi, TimeSpan.FromMilliseconds(60000));
+            string stdout = process.StandardOutput;
+            string stderr = process.StandardError;
             Assert.True(process.ExitCode == 0, stdout + stderr);
             Assert.Contains("QN_SYNC_CONFLICT_SMOKE_SUCCESS", stdout);
             Assert.Equal(liveBefore, SnapshotLiveProfile(liveRoot));

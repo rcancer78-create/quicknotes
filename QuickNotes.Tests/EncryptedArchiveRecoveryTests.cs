@@ -1053,11 +1053,40 @@ public sealed class EncryptedArchiveRecoveryTests
         string[] before = Directory.Exists(live)
             ? Directory.GetFileSystemEntries(live, "*", SearchOption.TopDirectoryOnly)
             : Array.Empty<string>();
+        // Fail before invoking a writer if the path guard regresses on a fresh machine.
+        Assert.Throws<EncryptedArchiveValidationException>(() =>
+            EncryptedArchivePathRules.EnsureRestoreDestinationAllowed(live));
         Assert.Throws<EncryptedArchiveValidationException>(() => fx.RestorePassword(live));
         string[] after = Directory.Exists(live)
             ? Directory.GetFileSystemEntries(live, "*", SearchOption.TopDirectoryOnly)
             : Array.Empty<string>();
         Assert.Equal(before, after);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RestoreDestination_ProtectsLiveAndIsolatedProfiles_WithoutDependingOnTheirContents(bool nested)
+    {
+        string isolated = Path.Combine(Path.GetTempPath(), "qn_restore_guard_" + Guid.NewGuid().ToString("N"));
+        string? previous = QuickNotesDbContext.ProfileDirectoryOverride;
+        try
+        {
+            QuickNotesDbContext.ProfileDirectoryOverride = isolated;
+            Assert.False(Directory.Exists(isolated));
+            foreach (string root in new[] { QuickNotesDbContext.LiveProfileDirectory, isolated })
+            {
+                string destination = nested ? Path.Combine(root, "restore-child") : root;
+                // This guard is purely lexical: do not create, clear, or restore into a real profile.
+                Assert.Throws<EncryptedArchiveValidationException>(() =>
+                    EncryptedArchivePathRules.EnsureNotLiveProfile(destination));
+            }
+            Assert.False(Directory.Exists(isolated));
+        }
+        finally
+        {
+            QuickNotesDbContext.ProfileDirectoryOverride = previous;
+        }
     }
 
     [Fact]
