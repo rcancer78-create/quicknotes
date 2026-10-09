@@ -229,6 +229,8 @@ public sealed class WorkspacePolishTests
                 window.Height = 720;
                 window.Measure(new Size(1100, 720));
                 window.Arrange(new Rect(0, 0, 1100, 720));
+                // Unshown windows still need the dispatcher to apply queued WPF bindings.
+                ThreePaneUiSmokeRunner.DoEvents();
                 window.UpdateLayout();
 
                 // 1. Initial List mode verifies PageSize limit (50).

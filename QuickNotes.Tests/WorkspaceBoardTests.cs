@@ -105,6 +105,8 @@ public sealed class WorkspaceBoardTests
                 window.Height = 720;
                 window.Measure(new Size(1100, 720));
                 window.Arrange(new Rect(0, 0, 1100, 720));
+                // Unshown windows still need the dispatcher to apply queued WPF bindings.
+                ThreePaneUiSmokeRunner.DoEvents();
                 window.UpdateLayout();
 
                 // 1. Initial order parity
@@ -113,6 +115,7 @@ public sealed class WorkspaceBoardTests
 
                 vm.SetBoardViewModeCommand.Execute(null);
                 window.UpdateWorkspaceLayout();
+                ThreePaneUiSmokeRunner.DoEvents();
                 window.UpdateLayout();
 
                 var boardIds = window.BoardListBox.ItemsSource.OfType<NoteCardViewModel>().Select(n => n.Id).ToList();
@@ -240,6 +243,8 @@ public sealed class WorkspaceBoardTests
                 window.UpdateWorkspaceLayout();
                 window.Measure(new Size(1100, 720));
                 window.Arrange(new Rect(0, 0, 1100, 720));
+                // Unshown windows still need the dispatcher to apply queued WPF bindings.
+                ThreePaneUiSmokeRunner.DoEvents();
                 window.UpdateLayout();
 
                 // First page must be <= PageSize (50)
@@ -370,6 +375,8 @@ public sealed class WorkspaceBoardTests
                 window.Height = 720;
                 window.Measure(new Size(1100, 720));
                 window.Arrange(new Rect(0, 0, 1100, 720));
+                // Unshown windows still need the dispatcher to apply queued WPF bindings.
+                ThreePaneUiSmokeRunner.DoEvents();
                 window.UpdateLayout();
 
                 // Select note index 2
@@ -389,6 +396,7 @@ public sealed class WorkspaceBoardTests
                 // Toggle to Board
                 vm.SetBoardViewModeCommand.Execute(null);
                 window.UpdateWorkspaceLayout();
+                ThreePaneUiSmokeRunner.DoEvents();
                 window.UpdateLayout();
 
                 Assert.Equal(WorkspaceViewMode.Board, vm.WorkspaceViewMode);
@@ -398,6 +406,7 @@ public sealed class WorkspaceBoardTests
                 // Toggle back to List
                 vm.SetListViewModeCommand.Execute(null);
                 window.UpdateWorkspaceLayout();
+                ThreePaneUiSmokeRunner.DoEvents();
                 window.UpdateLayout();
 
                 Assert.Equal(WorkspaceViewMode.List, vm.WorkspaceViewMode);
@@ -850,6 +859,8 @@ public sealed class WorkspaceBoardTests
                 window.Height = 720;
                 window.Measure(new Size(1100, 720));
                 window.Arrange(new Rect(0, 0, 1100, 720));
+                // Unshown windows still need the dispatcher to apply queued WPF bindings.
+                ThreePaneUiSmokeRunner.DoEvents();
                 window.UpdateLayout();
 
                 // 1. In List mode, status bar mentions Enter
@@ -859,6 +870,7 @@ public sealed class WorkspaceBoardTests
                 // 2. In Board mode, status bar mentions Ctrl+E and does NOT mention Enter
                 vm.SetBoardViewModeCommand.Execute(null);
                 window.UpdateWorkspaceLayout();
+                ThreePaneUiSmokeRunner.DoEvents();
                 window.UpdateLayout();
 
                 Assert.Equal(WorkspaceViewMode.Board, vm.WorkspaceViewMode);
