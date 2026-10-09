@@ -52,12 +52,47 @@ public sealed class TestHostIsolationTests
         RunInFreshTestHost(nameof(StaDispatcher_LoadsResourcesWithoutRunningProductionStartup));
     }
 
+    [Fact]
+    public void BenchmarkRunner_RunBeforeOtherUiTests_KeepsTheApplicationDispatcherPumping()
+        => AssertBenchmarkKeepsDispatcherPumping(
+            nameof(BenchmarkRunner_RunBeforeOtherUiTests_KeepsTheApplicationDispatcherPumping),
+            () => new PerformanceBaselineSmokeTests().SmokeBenchmarkSuite_CompletesQuicklyWithValidMetrics());
+
+    [Fact]
+    public void BenchmarkTool_RunBeforeOtherUiTests_KeepsTheApplicationDispatcherPumping()
+        => AssertBenchmarkKeepsDispatcherPumping(
+            nameof(BenchmarkTool_RunBeforeOtherUiTests_KeepsTheApplicationDispatcherPumping),
+            () => new PerformanceBaselineSmokeTests().PerformanceBenchmarkTool_WhenOptionalUiMetricUnavailable_ExitsSuccessfully());
+
+    private static void AssertBenchmarkKeepsDispatcherPumping(string testName, Action benchmark)
+    {
+        if (IsChild(testName))
+        {
+            Assert.Null(Application.Current);
+            benchmark();
+
+            Application app = StaTestHarness.EnsureApplication();
+            StaTestHarness.Run(() =>
+            {
+                Assert.Same(app, Application.Current);
+                Assert.True(app.Dispatcher.CheckAccess());
+                Assert.False(app.Dispatcher.HasShutdownStarted);
+                Assert.True(app.Resources.Contains("InkBrush"));
+            });
+            return;
+        }
+
+        // Each entry point runs first in its own testhost, including its isolated
+        // GUI processes, before checking subsequent STA work.
+        RunInFreshTestHost(testName, iterations: 1, timeout: TimeSpan.FromSeconds(120));
+    }
+
     private static bool IsChild(string testName)
         => Environment.GetEnvironmentVariable(ChildVariable) == testName;
 
-    private static void RunInFreshTestHost(string testName)
+    private static void RunInFreshTestHost(string testName, int iterations = 3, TimeSpan? timeout = null)
     {
-        for (int iteration = 0; iteration < 3; iteration++)
+        for (int iteration = 0; iteration < iterations; iteration++)
         {
             string results = Path.Combine(Path.GetTempPath(), "qn-bootstrap-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(results);
@@ -80,7 +115,7 @@ public sealed class TestHostIsolationTests
                     }
                 };
                 start.Environment[ChildVariable] = testName;
-                var result = ProcessTestHarness.Run(start, TimeSpan.FromSeconds(60));
+                var result = ProcessTestHarness.Run(start, timeout ?? TimeSpan.FromSeconds(60));
                 Assert.True(result.ExitCode == 0,
                     $"Bootstrap iteration {iteration}: {result.StandardOutput}\n{result.StandardError}");
 

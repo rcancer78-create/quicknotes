@@ -9,7 +9,7 @@ using Xunit;
 
 namespace QuickNotes.Tests;
 
-[TestCategory(TestCategories.Integration)]
+[TestCategory(TestCategories.UiSensitive)]
 public sealed class PerformanceBaselineSmokeTests
 {
     [Fact]
@@ -210,12 +210,15 @@ public sealed class PerformanceBaselineSmokeTests
                 AttachmentTotalBytes = 50 * 1024
             });
 
-            var result = PerformanceBenchmarkRunner.Run(new BenchmarkRunOptions
+            BenchmarkSuiteResult? result = null;
+            // The editor measurement must use the Application-owning STA. Calling
+            // it from MTA creates an Application on a temporary thread that exits.
+            StaTestHarness.Run(() => result = PerformanceBenchmarkRunner.Run(new BenchmarkRunOptions
             {
                 Dataset = dataset,
                 WarmupCount = 0,
                 SampleCount = 1
-            });
+            }), TimeSpan.FromSeconds(60));
 
             Assert.NotNull(result);
             Assert.True(result.SearchOverallMetric.Summary.Median > 0);
@@ -312,13 +315,15 @@ public sealed class PerformanceBaselineSmokeTests
         string tempReport = Path.Combine(Path.GetTempPath(), "qn_perf_smoke_report_" + Guid.NewGuid().ToString("N") + ".md");
         try
         {
-            int exitCode = PerformanceBenchmarkTool.Run(new[]
+            int exitCode = -1;
+            // This entry point also measures the editor in-process.
+            StaTestHarness.Run(() => exitCode = PerformanceBenchmarkTool.Run(new[]
             {
                 "--smoke",
                 "--seed", "42",
                 "--samples", "1",
                 "--report", tempReport
-            });
+            }), TimeSpan.FromSeconds(60));
 
             Assert.Equal(0, exitCode);
             Assert.True(File.Exists(tempReport));
