@@ -1,0 +1,368 @@
+<Window x:Class="QuickNotes.App.Views.NoteAssemblyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Собрать заметки"
+        Height="720" Width="780"
+        MinHeight="520" MinWidth="640"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource CanvasBrush}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,6" LastChildFill="True"
+                   AutomationProperties.Name="Заголовок окна сборки заметок">
+            <TextBlock DockPanel.Dock="Left" Text="Собрать заметки"
+                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"
+                       Foreground="{DynamicResource InkBrush}"/>
+            <TextBlock Text="Предпросмотр не пишет базу. Корзина — только с отдельным подтверждением."
+                       Margin="10,0,0,0" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center"
+                       Foreground="{DynamicResource MutedBrush}"/>
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ShowSetup}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid x:Name="AssemblySourceRow" Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="6" Padding="4"
+                            VerticalAlignment="Stretch">
+                        <ListBox x:Name="AssemblySourcesList"
+                                 ItemsSource="{Binding Sources}"
+                                 SelectedItem="{Binding SelectedSource}"
+                                 MaxHeight="90"
+                                 Background="Transparent" BorderThickness="0"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 AutomationProperties.Name="Список исходников сборки"
+                                 ToolTip="Выбранные исходники в порядке сборки">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding OrderText}" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{Binding DisplayTitle}" Foreground="{DynamicResource InkBrush}" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                    <StackPanel x:Name="AssemblySourceActionsPanel" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top">
+                        <Button x:Name="AssemblyMoveUpButton" Content="Вверх"
+                                Command="{Binding MoveSourceUpCommand}"
+                                Width="88" Height="26" Margin="0,0,0,4"
+                                AutomationProperties.Name="Переместить исходник вверх"
+                                ToolTip="Переместить выбранный исходник вверх (Ctrl+↑)"
+                                Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" BorderThickness="0"/>
+                        <Button x:Name="AssemblyMoveDownButton" Content="Вниз"
+                                Command="{Binding MoveSourceDownCommand}"
+                                Width="88" Height="26" Margin="0,0,0,4"
+                                AutomationProperties.Name="Переместить исходник вниз"
+                                ToolTip="Переместить выбранный исходник вниз (Ctrl+↓)"
+                                Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" BorderThickness="0"/>
+                        <Button x:Name="AssemblyRemoveSourceButton" Content="Убрать"
+                                Command="{Binding RemoveSelectedSourceCommand}"
+                                Width="88" Height="26"
+                                AutomationProperties.Name="Убрать исходник из сборки"
+                                ToolTip="Убрать выбранный исходник из списка"
+                                Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" BorderThickness="0"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid x:Name="AssemblyCandidateRow" Grid.Row="1" Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.1*"/>
+                        <ColumnDefinition Width="1.4*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="AssemblyCandidateSearchBox"
+                             Text="{Binding CandidateSearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Height="28" VerticalContentAlignment="Center" Padding="8,0" Margin="0,0,6,0"
+                             AutomationProperties.Name="Поиск заметок для сборки"
+                             ToolTip="Поиск по заголовку и тексту среди всех активных незащищённых заметок. Защищённые видны нейтральной подписью."
+                             Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource InputFgBrush}"
+                             BorderBrush="{DynamicResource InputBorderBrush}"/>
+                    <ComboBox x:Name="AssemblyCandidateCombo" Grid.Column="1"
+                              ItemsSource="{Binding Candidates}"
+                              SelectedItem="{Binding SelectedCandidate}"
+                              MinHeight="28" Padding="6,2"
+                              AutomationProperties.Name="Каталог заметок для добавления"
+                              ToolTip="Страница кандидатов. Для заметок старше текущей страницы используйте поиск или «Ещё»."/>
+                    <Button Grid.Column="2" x:Name="AssemblyLoadMoreCandidatesButton" Content="Ещё"
+                            Command="{Binding LoadMoreCandidatesCommand}"
+                            Width="56" Height="28" Margin="6,0,0,0"
+                            AutomationProperties.Name="Загрузить ещё кандидатов сборки"
+                            ToolTip="Следующая страница активных заметок"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" BorderThickness="0">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CandidateHasMore}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Grid.Column="3" x:Name="AssemblyAddSourceButton" Content="Добавить"
+                            Command="{Binding AddSelectedCandidateCommand}"
+                            Width="92" Height="28" Margin="6,0,0,0"
+                            AutomationProperties.Name="Добавить исходник в сборку"
+                            ToolTip="Добавить выбранную заметку в конец списка"
+                            Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0"/>
+                </Grid>
+                <TextBlock Grid.Row="2" Margin="0,2,0,0"
+                           Text="{Binding CandidateStatusText}" FontSize="11"
+                           Foreground="{DynamicResource MutedBrush}"
+                           AutomationProperties.Name="Статус списка кандидатов сборки"/>
+
+                <Grid Grid.Row="3" Margin="0,6,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,6,0">
+                        <TextBlock Text="Итоговый заголовок" FontWeight="SemiBold" FontSize="12"
+                                   Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                        <TextBox x:Name="AssemblyTitleBox"
+                                 Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="28" VerticalContentAlignment="Center" Padding="8,0"
+                                 AutomationProperties.Name="Итоговый заголовок собранной заметки"
+                                 ToolTip="Заголовок новой заметки. Одинаковые заголовки допустимы — существующая заметка не перезаписывается."
+                                 Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource InputFgBrush}"
+                                 BorderBrush="{DynamicResource InputBorderBrush}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                        <TextBlock Text="Разделитель" FontWeight="SemiBold" FontSize="12"
+                                   Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="AssemblySeparatorCombo"
+                                  ItemsSource="{Binding SeparatorOptions}"
+                                  SelectedItem="{Binding SelectedSeparator}"
+                                  MinHeight="28" Padding="6,2"
+                                  AutomationProperties.Name="Разделитель между исходниками"
+                                  ToolTip="Вставляется между телами исходников в итоговом Markdown"/>
+                        <TextBox x:Name="AssemblyCustomSeparatorBox"
+                                 Text="{Binding CustomSeparator, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="28" Margin="0,6,0,0" VerticalContentAlignment="Center" Padding="8,0"
+                                 AutomationProperties.Name="Пользовательский разделитель"
+                                 ToolTip="Однострочный разделитель без перевода строки"
+                                 Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource InputFgBrush}"
+                                 BorderBrush="{DynamicResource InputBorderBrush}">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCustomSeparator}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                    </StackPanel>
+                </Grid>
+
+                <Border Grid.Row="4" Margin="0,6,0,0" Padding="8" CornerRadius="6"
+                        Background="{DynamicResource ErrorBannerBgBrush}"
+                        BorderBrush="{DynamicResource ErrorBannerBorderBrush}" BorderThickness="1"
+                        AutomationProperties.Name="Блокирующая причина сборки">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasBlockingReason}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding BlockingReason}" TextWrapping="Wrap"
+                               Foreground="{DynamicResource ErrorBannerFgBrush}"/>
+                </Border>
+
+                <StackPanel Grid.Row="5" Margin="0,6,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="AssemblyPreserveSourcesRadio"
+                                     GroupName="SourceFate" IsChecked="{Binding PreserveSources}"
+                                     Content="Сохранить исходники"
+                                     Foreground="{DynamicResource InkBrush}" Margin="0,0,16,0"
+                                     AutomationProperties.Name="Сохранить исходники"
+                                     ToolTip="Исходные заметки не изменяются"/>
+                        <RadioButton x:Name="AssemblyTrashSourcesRadio"
+                                     GroupName="SourceFate" IsChecked="{Binding MoveSourcesToTrash}"
+                                     Content="В корзину"
+                                     Foreground="{DynamicResource InkBrush}"
+                                     AutomationProperties.Name="Переместить исходники в корзину"
+                                     ToolTip="Отдельное разрушительное действие, требует подтверждения"/>
+                    </StackPanel>
+                    <Border x:Name="AssemblyTrashWarningBanner" Margin="0,6,0,0" Padding="8" CornerRadius="6"
+                            Background="{DynamicResource WarningBannerBgBrush}"
+                            BorderBrush="{DynamicResource WarningBannerBorderBrush}" BorderThickness="1"
+                            AutomationProperties.Name="Предупреждение о корзине исходников">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding MoveSourcesToTrash}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <CheckBox x:Name="AssemblyTrashAckCheckBox"
+                                  IsChecked="{Binding TrashAcknowledged}"
+                                  Content="Подтверждаю перемещение исходников в корзину непосредственно перед сборкой"
+                                  Foreground="{DynamicResource WarningBannerFgBrush}"
+                                  AutomationProperties.Name="Подтверждение перемещения исходников в корзину"
+                                  ToolTip="Без этой отметки сборка с удалением исходников недоступна"/>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Row="6" Margin="0,4,0,2">
+                    <TextBlock x:Name="AssemblyConfigSummaryText"
+                               Text="{Binding PreviewConfigurationText}" FontSize="11"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource InkBrush}"
+                               AutomationProperties.Name="Краткая конфигурация предпросмотра сборки"/>
+                    <TextBlock Text="{Binding ResultTagsText}" FontSize="11"
+                               Foreground="{DynamicResource MutedBrush}" Margin="0,2,0,0"
+                               AutomationProperties.Name="Теги результата сборки"/>
+                </StackPanel>
+
+                <TextBox x:Name="AssemblyPreviewBox" Grid.Row="7"
+                         Text="{Binding PreviewMarkdown, Mode=OneWay}"
+                         IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                         MinHeight="96" VerticalScrollBarVisibility="Auto"
+                         Padding="6,2"
+                         FontFamily="Consolas" FontSize="10"
+                         AutomationProperties.Name="Полный предпросмотр итогового Markdown"
+                         ToolTip="Детерминированный предпросмотр. Запись в базу не выполняется."
+                         Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource InputFgBrush}"
+                         BorderBrush="{DynamicResource InputBorderBrush}"/>
+            </Grid>
+
+            <Border x:Name="AssemblySuccessSummaryPanel"
+                    Background="{DynamicResource SuccessBannerBgBrush}"
+                    BorderBrush="{DynamicResource SuccessBannerBorderBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="16"
+                    AutomationProperties.Name="Итог успешной сборки">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasCompletedAssembly}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <DockPanel LastChildFill="True">
+                    <Border DockPanel.Dock="Top" Background="{DynamicResource AccentBrush}" CornerRadius="6"
+                            Padding="10,8" Margin="0,0,0,10">
+                        <TextBlock Text="Сборка выполнена" FontSize="16" FontWeight="SemiBold" Foreground="White"/>
+                    </Border>
+                    <Border DockPanel.Dock="Top" Margin="0,0,0,10" Padding="10" CornerRadius="6"
+                            Background="{DynamicResource WarningBannerBgBrush}"
+                            BorderBrush="{DynamicResource WarningBannerBorderBrush}" BorderThickness="1"
+                            AutomationProperties.Name="Исходники перемещены в корзину">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasTrashedSources}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="Исходники перемещены в корзину в той же транзакции."
+                                   TextWrapping="Wrap" Foreground="{DynamicResource WarningBannerFgBrush}"/>
+                    </Border>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="{Binding SuccessSummary}" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource InkBrush}"/>
+                        <TextBlock Margin="0,8,0,0" Foreground="{DynamicResource MutedBrush}"
+                                   Text="{Binding CreatedNoteId, StringFormat=Новая заметка #{0}}"/>
+                        <TextBlock Margin="0,12,0,6" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}"
+                                   Text="Итоговый Markdown"/>
+                    </StackPanel>
+                    <TextBox Text="{Binding PreviewMarkdown, Mode=OneWay}" IsReadOnly="True"
+                             TextWrapping="Wrap" MinHeight="160" VerticalScrollBarVisibility="Auto"
+                             FontFamily="Consolas" FontSize="12"
+                             Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource InputFgBrush}"
+                             BorderBrush="{DynamicResource InputBorderBrush}"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Padding="8,4" CornerRadius="6" MinHeight="30"
+                    Background="{DynamicResource InfoBannerBgBrush}"
+                    BorderBrush="{DynamicResource InfoBannerBorderBrush}" BorderThickness="1">
+                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Foreground="{DynamicResource InfoBannerFgBrush}"
+                           AutomationProperties.Name="Статус сборки заметок"/>
+            </Border>
+            <Button Grid.Column="1" x:Name="AssemblyCancelButton" Content="Закрыть"
+                    Command="{Binding CancelCommand}" IsCancel="True"
+                    Width="100" Height="30" Margin="8,0,8,0"
+                    AutomationProperties.Name="Закрыть окно сборки"
+                    ToolTip="Закрыть окно"
+                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" BorderThickness="0"/>
+            <Button Grid.Column="2" x:Name="AssemblyCommitButton" Content="Собрать"
+                    Command="{Binding CommitCommand}"
+                    Width="110" Height="30" IsDefault="True"
+                    AutomationProperties.Name="Выполнить сборку заметок"
+                    ToolTip="Создать новую заметку. Доступно только при действительном предпросмотре."
+                    Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="SemiBold" BorderThickness="0">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="IsEnabled" Value="True"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CanCommit}" Value="False">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasCompletedAssembly}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </Grid>
+    </Grid>
+</Window>

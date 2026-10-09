@@ -1,0 +1,62 @@
+# Build output
+**/bin/
+**/obj/
+**/publish/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# IDE and user-local state
+.vs/
+.vscode/
+.idea/
+.cursor/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# QuickNotes local data and secrets
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.bak
+*.pfx
+*.p12
+*.pem
+*.key
+appsettings.Local.json
+settings.local.json
+
+# Packages and installer output
+*.nupkg
+*.snupkg
+installer/output/
+installer/Output/
+
+# Temporary agent and acceptance artifacts
+artifacts/
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local work logs, review output and agent run artifacts
+docs/work/
+test_out.txt
+OPUS_REVIEW_*.md
+*.log
+*.log.*
+
+# Local credentials and backup archives (never publication inputs)
+.env
+.env.*
+!.env.example
+s3_credentials.dat
+sync_password.dat
+*.qnar
+*.qnar.*

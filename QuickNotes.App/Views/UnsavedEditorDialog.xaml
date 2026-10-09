@@ -1,0 +1,41 @@
+<Window x:Class="QuickNotes.App.Views.UnsavedEditorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Несохранённые изменения"
+        Width="520" Height="280"
+        MinWidth="480" MinHeight="240"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource CanvasBrush}"
+        AutomationProperties.Name="Диалог несохранённых изменений">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <TextBlock x:Name="PromptText"
+                       TextWrapping="Wrap"
+                       FontSize="13"
+                       Foreground="{DynamicResource InkBrush}"
+                       AutomationProperties.Name="Пояснение о судьбе черновика"/>
+        </ScrollViewer>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button x:Name="StayButton" Content="Вернуться" Width="110" Height="32" Margin="0,0,8,0"
+                    IsCancel="True" Click="OnStay"
+                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                    ToolTip="Продолжить редактирование и сохранить журнал черновика"
+                    AutomationProperties.Name="Вернуться к редактированию"/>
+            <Button x:Name="DiscardButton" Content="Не сохранять" Width="130" Height="32" Margin="0,0,8,0"
+                    Click="OnDiscard"
+                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                    ToolTip="Отменить правки и удалить журнал черновика"
+                    AutomationProperties.Name="Не сохранять изменения"/>
+            <Button x:Name="SaveButton" Content="Сохранить" Width="120" Height="32"
+                    IsDefault="True" Click="OnSave"
+                    Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="SemiBold"
+                    ToolTip="Сохранить заметку на этом компьютере и удалить журнал черновика"
+                    AutomationProperties.Name="Сохранить изменения"/>
+        </StackPanel>
+    </Grid>
+</Window>

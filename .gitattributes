@@ -1,0 +1,9 @@
+# Match the repository's existing .editorconfig and C# format gate.
+* text=auto eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.qnar binary

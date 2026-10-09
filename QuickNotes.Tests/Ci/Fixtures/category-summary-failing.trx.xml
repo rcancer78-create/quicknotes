@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-13T00:00:00.0000000+00:00" />
+  <TestDefinitions>
+    <UnitTest name="QuickNotes.Tests.SampleUnit.Ok" id="11111111-1111-1111-1111-111111111111">
+      <TestMethod className="QuickNotes.Tests.SampleUnit" name="Ok" />
+    </UnitTest>
+    <UnitTest name="QuickNotes.Tests.SampleIntegration.Ok" id="22222222-2222-2222-2222-222222222222">
+      <TestCategory>
+        <TestCategoryItem TestCategory="Integration" />
+      </TestCategory>
+      <TestMethod className="QuickNotes.Tests.SampleIntegration" name="Ok" />
+    </UnitTest>
+    <UnitTest name="QuickNotes.Tests.SampleUi.Ok" id="33333333-3333-3333-3333-333333333333">
+      <TestCategory>
+        <TestCategoryItem TestCategory="UiSensitive" />
+      </TestCategory>
+      <TestMethod className="QuickNotes.Tests.SampleUi" name="Ok" />
+    </UnitTest>
+    <UnitTest name="QuickNotes.Tests.SampleLive.Ok" id="44444444-4444-4444-4444-444444444444">
+      <Properties>
+        <Property>
+          <Key>Xunit.Trait</Key>
+          <Value>Category: LiveCloud</Value>
+        </Property>
+      </Properties>
+      <TestMethod className="QuickNotes.Tests.SampleLive" name="Ok" />
+    </UnitTest>
+  </TestDefinitions>
+  <Results>
+    <UnitTestResult testId="11111111-1111-1111-1111-111111111111" outcome="Failed" />
+    <UnitTestResult testId="22222222-2222-2222-2222-222222222222" outcome="Passed" />
+    <UnitTestResult testId="33333333-3333-3333-3333-333333333333" outcome="Passed" />
+    <UnitTestResult testId="44444444-4444-4444-4444-444444444444" outcome="Passed" />
+  </Results>
+</TestRun>

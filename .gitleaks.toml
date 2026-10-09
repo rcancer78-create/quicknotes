@@ -1,0 +1,18 @@
+# Keep every built-in detector enabled. Only exact non-production values are
+# exempted: fixed local benchmark/encryption-test constants and the framework
+# API name cited by the benchmark report (a generic-detector false positive).
+# Never add path, rule, or substring exemptions: different credentials in these
+# same source/test files must remain detectable.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exact synthetic test constants and documented framework API identifier only"
+regexTarget = "secret"
+regexes = [
+  '''^qn\-pbkdf2\-bench$''',
+  '''^YCP_VERY_SECRET_KEY_NEVER_LEAK_ME_ABC123$''',
+  '''^pw\-keepboth\-test\-123$''',
+  '''^qn\-argon2id\-bench$''',
+  '''^Rfc2898DeriveBytes\.Pbkdf2$''',
+]

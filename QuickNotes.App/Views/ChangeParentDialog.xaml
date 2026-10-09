@@ -1,0 +1,56 @@
+<Window x:Class="QuickNotes.App.Views.ChangeParentDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Title}"
+        Height="210" Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource CanvasBrush}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Выберите нового родителя:" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,6"/>
+
+        <ComboBox Grid.Row="1" ItemsSource="{Binding AvailableParents}" SelectedItem="{Binding SelectedParent}"
+                  ToolTip="Выберите родительский тег из списка"
+                  Height="34" VerticalContentAlignment="Center" FontSize="13">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="{Binding Name}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                                        <Setter Property="Text" Value="[ Корень (без родителя) ]"/>
+                                        <Setter Property="FontStyle" Value="Italic"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <TextBlock Grid.Row="2" Text="Текущий тег и его потомки скрыты для предотвращения циклов."
+                   FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Отмена" Command="{Binding CancelCommand}"
+                    Width="90" Height="32" Margin="0,0,8,0"
+                    ToolTip="Отменить выбор родителя"
+                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" BorderThickness="0" Cursor="Hand"/>
+            <Button Content="Применить" Command="{Binding SaveCommand}" IsDefault="True"
+                    Width="110" Height="32"
+                    ToolTip="Применить выбранного родителя"
+                    Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
+</Window>

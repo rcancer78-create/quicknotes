@@ -1,0 +1,40 @@
+<Window x:Class="QuickNotes.App.Views.DraftDiscardDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:h="clr-namespace:QuickNotes.App.Helpers"
+        Title="{x:Static h:DraftDiscardPrompt.Title}"
+        Width="480" Height="200"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource CanvasBrush}"
+        AutomationProperties.Name="Диалог удаления черновика">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="⚠️" FontSize="20" Margin="0,0,8,0"/>
+                <TextBlock Text="Подтверждение удаления" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Grid.Row="1" Text="{x:Static h:DraftDiscardPrompt.Message}"
+                   TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource InkBrush}"
+                   AutomationProperties.Name="Пояснение об удалении черновика" Margin="4,0,4,0"/>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button x:Name="CancelButton" Content="Отмена" Width="100" Height="32" Margin="0,0,8,0"
+                    IsCancel="True" Click="OnCancel"
+                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                    AutomationProperties.Name="Отмена удаления черновика"/>
+            <Button x:Name="DiscardButton" Content="Удалить" Width="100" Height="32"
+                    Click="OnDiscard"
+                    Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="SemiBold"
+                    AutomationProperties.Name="Подтвердить удаление черновика"/>
+        </StackPanel>
+    </Grid>
+</Window>

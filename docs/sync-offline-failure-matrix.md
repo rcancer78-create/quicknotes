@@ -1,0 +1,25 @@
+# Offline sync failure/recovery matrix
+
+Deterministic coverage of remaining ROADMAP §5.5 failure and recovery scenarios **without** Yandex Object Storage. Production `SyncEngine` / `SyncConflictService` / `SyncPasswordRotationService` / `SyncScheduler` run against `FaultInjectingCloudObjectStoreTransport` (and existing in-memory fakes). This document does **not** close real-cloud, two-Windows-VM, or manual §5.5/§5.6 criteria.
+
+Live S3 still required: isolated test bucket + IAM/lifecycle/spend limit; two Windows VMs or accounts; Keep Local/Remote as live cases; offline/reconnect on a real network; live ETag race; live quota; live corrupted object; live sync-password rotation and recovery; SDK-level `x-amz-meta-*` (not in the public Head/Get model) and a filled live stand journal. Offline source/fake-transport redaction: `S3RedactionAuditTests`, `S3ObjectStoreTransportTests`. Opt-in sanitized protocol template: `scripts/CloudRunProtocol.ps1` (does not close live headers or a completed stand run).
+
+## Scenario → tests
+
+| Scenario | Offline proof (exact tests) | Still open on real S3 / two VMs |
+|---|---|---|
+| Keep Local (explicit) | `SyncFailureMatrixTests.KeepLocal_AfterEngineConflict_PushesChosenLocal_NoSilentLossOrPlaintext`; service-level `SyncConflictServiceTests.ResolveKeepLocal_*` | Live Keep Local as a dedicated bucket case |
+| Keep Remote (explicit) | `SyncFailureMatrixTests.KeepRemote_AfterEngineConflict_AppliesRemote_ThenARemainsChosenVersion`; `SyncConflictServiceTests.ResolveAcceptRemote_*` | Live Keep Remote as a dedicated bucket case (live pack currently KeepBoth + AcceptRemote after copy) |
+| Keep Both | `SyncConflictServiceTests.ResolveKeepBoth_*`; live: `YandexObjectStorageLiveAcceptanceTests` (opt-in) | Repeat on two VMs |
+| Offline then reconnect | `SyncEngineTests.TwoDevices_OfflineEditThenReconnect_PushesWithoutDataLoss`; `SyncEngineTests.Scenario10_OfflineHandling_ReturnsOfflineResultWithoutCorruptingDatabase` | Real network drop / VPN / NAT |
+| ETag / precondition race | `SyncFailureMatrixTests.EtagRace_IsNotOffline_PreservesPendingAndLocal`; `SyncEngineTests.Scenario11_EtagRaceCondition_ReturnsConflictResult_PreservesPendingState`; `CloudPasswordRotationTests.ETagRaceOnSwitch_LeavesOldActiveAndOldDpapi` | Concurrent writers on a real bucket |
+| Quota / full store | `SyncFailureMatrixTests.QuotaAndFullStore_AreNotClassifiedAsOffline_AndDoNotDropLocal`; `SyncSchedulerTests.QuotaExceeded_DoesNotRetryAsNetworkBackoff`; blob policy `SyncEngineTests.QuotaAt950_*`, `BlobAttachmentSyncTests.Quota_*` | Provider 507/429 against a real bucket |
+| Corrupted remote object | `SyncFailureMatrixTests.CorruptedRemoteGet_IsNotOffline_DoesNotApplyOrLeak`; `SyncEngineTests.Scenario7_CorruptedPointer_*`, `Scenario9_CorruptedPackagePayload_*`, `Scenario20_Recovery_WhenRemoteObjectCorrupted_*`; `CloudPasswordRotationTests.CorruptPackage_FailsClosed_NoSwitch` | Bit-rot / truncated object in S3 |
+| Sync-password rotation | `CloudPasswordRotationTests.SuccessfulRotation_NewPasswordReadsAfterSwitch_NotBefore_OldGenerationKept` (old envelope remains; new password does not decrypt it); fail-closed: `WrongOldPassword_*`, `CorruptPackage_*`, `ETagRaceOnSwitch_*`, `CancelBeforeSwitch_*` | Rotation against a live generation pointer |
+| Recovery (pending payload / crash) | `SyncFailureMatrixTests.Recovery_DoesNotOverwriteNewerLocal_FollowUpPushSendsIt`; `SyncEngineTests.Scenario12_IndeterminatePut_CrashRecovery_*`, `Scenario19_Recovery_WhenRemoteObjectMissing_*`, `Scenario21_Recovery_WhenPendingPayloadDigestMismatches_*` | Process kill mid-PUT on a real client |
+| Tombstone, no resurrection | `SyncEngineTests.Scenario6_Tombstones_PropagateDeletionsWithoutResurrection`; `TwoDevices_TombstoneVsLocalEdit_CreatesConflict_DoesNotOverwriteLocal` | Live tombstone across two VMs |
+| Auth ≠ network | `SyncFailureMatrixTests.AuthError_IsNotClassifiedAsOffline_AndLeavesLocalNote`; `SyncSchedulerTests.AuthFailure_EntersErrorStateWithoutAutoRetryLoop` | Live 403 |
+| Bounded retries | `SyncSchedulerTests.QuotaExceeded_DoesNotRetryAsNetworkBackoff`; `KdfWorkBudgetExceeded_DoesNotRetryAsNetworkBackoff`; `AuthFailure_EntersErrorStateWithoutAutoRetryLoop`; S3 transport `S3ObjectStoreTransportTests.NonIdempotentWrite_DoesNotRetry*` | Live retry/backoff timing |
+| No plaintext in fake store | Matrix Keep Local/Remote/quota/corrupt/recovery tests; `SyncTests.SyncPackage_PlaintextPrivacy_NoUserMetadataOrSecretsInEnvelope`; `NoteProtectionRegressionTests.Sync_CloudPayloadPrivacy_NoPlaintextLeaked`; `S3RedactionAuditTests` (sanitizer, `ErrorLogService` inner-chain, unmapped `SyncEngine`); `S3ObjectStoreTransportTests` Put/error/timeout-inner redaction | Live SDK `x-amz-meta-*` (public model has no custom metadata map); complete stand logs |
+
+Fault injection lives in test infrastructure (`FaultInjectingCloudObjectStoreTransport`). The only production seam added for this matrix is classifying `CloudQuotaException` as `SyncCycleResult.IsQuotaExceeded` (not `IsOffline`) so scheduler/UI do not treat a full store as a network outage.

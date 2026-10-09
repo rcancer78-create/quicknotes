@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-release:
+    name: Windows Release build and test
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Prove CI reporting config
+        run: pwsh -NoProfile -File "$env:GITHUB_WORKSPACE\scripts\Assert-CiReportingConfig.ps1" -RepoRoot "$env:GITHUB_WORKSPACE"
+
+      - name: Clean restore
+        run: |
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.App\bin") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.App\bin" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.App\obj") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.App\obj" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.Tests\bin") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.Tests\bin" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.Tests\obj") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.Tests\obj" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\artifacts\ci") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\artifacts\ci" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\TestResults") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\TestResults" }
+          dotnet restore "$env:GITHUB_WORKSPACE\QuickNotes.sln" --force
+
+      - name: Verify C# whitespace formatting
+        run: dotnet format whitespace "$env:GITHUB_WORKSPACE\QuickNotes.sln" --verify-no-changes --no-restore
+
+      - name: Release build
+        run: dotnet build "$env:GITHUB_WORKSPACE\QuickNotes.sln" -c Release --no-restore -warnaserror
+
+      - name: Full test suite
+        run: >
+          dotnet test "$env:GITHUB_WORKSPACE\QuickNotes.sln"
+          -c Release
+          --no-build
+          --no-restore
+          --nologo
+          --blame-hang
+          --blame-hang-timeout 2m
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory "$env:GITHUB_WORKSPACE\artifacts\ci\test-results"
+
+      - name: Category summary
+        if: always()
+        run: >
+          pwsh -NoProfile -File "$env:GITHUB_WORKSPACE\scripts\Write-TestCategorySummary.ps1"
+          -TrxDirectory "$env:GITHUB_WORKSPACE\artifacts\ci\test-results"
+          -OutputPath "$env:GITHUB_WORKSPACE\artifacts\ci\test-results\category-summary.md"
+
+      - name: Upload CI test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-test-results
+          path: artifacts/ci/test-results/**
+          if-no-files-found: warn
+          retention-days: 7
+
+  package-windows:
+    name: Portable Windows x64 package
+    needs: windows-release
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish self-contained application
+        run: >
+          dotnet publish "$env:GITHUB_WORKSPACE\QuickNotes.App\QuickNotes.App.csproj"
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=false
+          -p:PublishTrimmed=false
+          -o "$env:GITHUB_WORKSPACE\artifacts\portable\QuickNotes"
+
+      - name: Package application and license
+        run: |
+          $packagePath = Join-Path $env:GITHUB_WORKSPACE 'artifacts\portable\QuickNotes'
+          Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'LICENSE') -Destination $packagePath
+          Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'README.md') -Destination $packagePath
+          $archivePath = Join-Path $env:GITHUB_WORKSPACE 'artifacts\portable\QuickNotes-windows-x64.zip'
+          Compress-Archive -LiteralPath $packagePath -DestinationPath $archivePath -Force
+
+      - name: Upload portable application
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuickNotes-windows-x64
+          path: artifacts/portable/QuickNotes-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14

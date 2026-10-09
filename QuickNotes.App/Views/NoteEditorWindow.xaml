@@ -1,0 +1,1279 @@
+<Window x:Class="QuickNotes.App.Views.NoteEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:h="clr-namespace:QuickNotes.App.Helpers"
+        Title="{Binding WindowTitle}"
+        Height="650" Width="820"
+        MinHeight="500" MinWidth="640"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource CanvasBrush}">
+    <Grid Margin="22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Row 0: Top State/Action Bar -->
+            <RowDefinition Height="Auto"/> <!-- Row 1: Source info bar (if present) -->
+            <RowDefinition Height="Auto"/> <!-- Row 2: Title field -->
+            <RowDefinition Height="*"/>    <!-- Row 3: Main text editor -->
+            <RowDefinition Height="Auto"/> <!-- Row 4: Tags area -->
+            <RowDefinition Height="Auto"/> <!-- Row 5: Links area -->
+            <RowDefinition Height="Auto"/> <!-- Row 6: Attachments area -->
+            <RowDefinition Height="Auto"/> <!-- Row 7: Bottom action buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- Top State/Action Bar -->
+        <Border Grid.Row="0" Margin="0,0,0,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Left info badges and mode switcher -->
+                <WrapPanel x:Name="EditorToolbarWrapPanel" VerticalAlignment="Center">
+                    <!-- Mode switch: Text / Split / Preview -->
+                    <Border Background="{DynamicResource ButtonBgBrush}" CornerRadius="9" Padding="2" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Текст" Command="{Binding ShowTextModeCommand}"
+                                    Height="24" Padding="8,0" BorderThickness="0" Cursor="Hand" ToolTip="Режим редактирования (Ctrl+P)">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ButtonFgBrush}"/>
+                                        <Setter Property="FontWeight" Value="Normal"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="Раздельно" Command="{Binding ShowSplitModeCommand}"
+                                    Height="24" Padding="8,0" BorderThickness="0" Cursor="Hand" ToolTip="Редактор и предпросмотр вместе">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ButtonFgBrush}"/>
+                                        <Setter Property="FontWeight" Value="Normal"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSplitMode}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="Предпросмотр" Command="{Binding ShowPreviewModeCommand}"
+                                    Height="24" Padding="8,0" BorderThickness="0" Cursor="Hand" ToolTip="Markdown-предпросмотр (Ctrl+P)">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource ButtonFgBrush}"/>
+                                        <Setter Property="FontWeight" Value="Normal"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPreviewMode}" Value="True">
+                                                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Markdown formatting toolbar -->
+                    <Border x:Name="FormattingToolbar" Background="{DynamicResource ButtonBgBrush}" CornerRadius="9" Padding="2" Margin="0,0,8,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPreviewMode}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="FormatBoldButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="B" Command="{Binding ToggleBoldCommand}" FontWeight="Bold"
+                                    ToolTip="{x:Static h:ShortcutCatalog.BoldToolbarTip}" AutomationProperties.Name="{x:Static h:ShortcutCatalog.BoldToolbarTip}"/>
+                            <Button x:Name="FormatItalicButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="I" Command="{Binding ToggleItalicCommand}" FontStyle="Italic"
+                                    ToolTip="{x:Static h:ShortcutCatalog.ItalicToolbarTip}" AutomationProperties.Name="{x:Static h:ShortcutCatalog.ItalicToolbarTip}"/>
+                            <Button x:Name="FormatHeadingButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="H" Command="{Binding ToggleHeadingCommand}" FontWeight="SemiBold"
+                                    ToolTip="{x:Static h:ShortcutCatalog.HeadingToolbarTip}" AutomationProperties.Name="{x:Static h:ShortcutCatalog.HeadingToolbarTip}"/>
+                            <Button x:Name="FormatCodeButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="`" Command="{Binding ToggleCodeCommand}" FontFamily="Consolas"
+                                    ToolTip="{x:Static h:ShortcutCatalog.CodeToolbarTip}" AutomationProperties.Name="{x:Static h:ShortcutCatalog.CodeToolbarTip}"/>
+                            <Button x:Name="FormatBulletListButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="•" Command="{Binding ToggleBulletListCommand}"
+                                    ToolTip="{x:Static h:ShortcutCatalog.BulletListToolbarTip}" AutomationProperties.Name="{x:Static h:ShortcutCatalog.BulletListToolbarTip}"/>
+                            <Button x:Name="FormatNumberedListButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="1." Command="{Binding ToggleNumberedListCommand}" FontSize="11"
+                                    ToolTip="{x:Static h:ShortcutCatalog.NumberedListToolbarTip}" AutomationProperties.Name="{x:Static h:ShortcutCatalog.NumberedListToolbarTip}"/>
+                            <Button x:Name="FormatCheckboxButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="☑" Command="{Binding ToggleCheckboxCommand}"
+                                    ToolTip="{x:Static h:ShortcutCatalog.CheckboxToolbarTip}" AutomationProperties.Name="{x:Static h:ShortcutCatalog.CheckboxToolbarTip}"/>
+                            <Button x:Name="FormatLinkButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="🔗" Command="{Binding InsertMarkdownLinkCommand}"
+                                    ToolTip="{x:Static h:ShortcutCatalog.MarkdownLinkToolbarTip}" AutomationProperties.Name="{x:Static h:ShortcutCatalog.MarkdownLinkToolbarTip}"/>
+                            <Button x:Name="FormatTableButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="⊞" Command="{Binding InsertTableCommand}"
+                                    ToolTip="Вставить таблицу (3x3)" AutomationProperties.Name="Вставить таблицу (3x3)"/>
+                            <Button x:Name="FormatOutlineButton" Style="{StaticResource FormattingToolbarButtonStyle}"
+                                    Content="☰" Command="{Binding ToggleOutlineCommand}"
+                                    ToolTip="Оглавление заметки" AutomationProperties.Name="Оглавление заметки"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Insert link button -->
+                    <Button Content="🔗 Заметка…" Command="{Binding InsertLinkCommand}"
+                            Height="28" Padding="8,0" Margin="0,0,8,0"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                            FontWeight="Medium" ToolTip="Вставить ссылку на другую заметку в текущую позицию текста"/>
+
+                    <!-- Trash warning -->
+                    <Border Background="{DynamicResource ErrorBannerBgBrush}" BorderBrush="{DynamicResource ErrorBannerBorderBrush}" BorderThickness="1" CornerRadius="9" Padding="8,3" Margin="0,0,8,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsInTrash}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="🗑️ Заметка в корзине" FontSize="12" Foreground="{DynamicResource ErrorBannerFgBrush}" FontWeight="Medium"/>
+                    </Border>
+
+                    <!-- Inbox badge -->
+                    <Border Background="{DynamicResource InfoBannerBgBrush}" BorderBrush="{DynamicResource InfoBannerBorderBrush}" BorderThickness="1" CornerRadius="9" Padding="8,3" Margin="0,0,8,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsInbox}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="📥 Входящие" FontSize="12" Foreground="{DynamicResource InfoBannerFgBrush}" FontWeight="Medium"/>
+                    </Border>
+                </WrapPanel>
+
+                <!-- Quick toggles -->
+                <WrapPanel Grid.Row="1" Margin="0,6,0,0" HorizontalAlignment="Right">
+                    <!-- Mark processed if in inbox -->
+                    <Button Content="✓ Обработано и следующая" Command="{Binding MarkProcessedAndNextCommand}"
+                            Height="28" Padding="10,0" Margin="0,0,8,0"
+                            Background="{DynamicResource SuccessBannerBgBrush}" Foreground="{DynamicResource SuccessBannerFgBrush}" FontWeight="Medium" ToolTip="Сохранить как обработанную и открыть следующую входящую (Ctrl+Enter)">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMarkProcessedVisible}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Protect note -->
+                    <Button Content="{Binding ProtectButtonText}" Command="{Binding ProtectNoteCommand}"
+                            Height="28" Padding="10,0" Margin="0,0,8,0"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontWeight="Medium"
+                            ToolTip="Установить пароль на эту заметку"/>
+
+                    <!-- Lock note -->
+                    <Button Content="{Binding LockButtonText}" Command="{Binding LockNoteCommand}"
+                            Height="28" Padding="10,0" Margin="0,0,8,0"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontWeight="Medium"
+                            ToolTip="Заблокировать заметку (потребуется пароль для повторного открытия)">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanLock}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Change password -->
+                    <Button Content="{Binding ChangePasswordButtonText}" Command="{Binding ChangePasswordCommand}"
+                            Height="28" Padding="10,0" Margin="0,0,8,0"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontWeight="Medium"
+                            ToolTip="Изменить пароль этой заметки">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanChangePassword}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Remove protection -->
+                    <Button Content="{Binding RemoveProtectionButtonText}" Command="{Binding RemoveProtectionCommand}"
+                            Height="28" Padding="10,0" Margin="0,0,8,0"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontWeight="Medium"
+                            ToolTip="Снять защиту с этой заметки">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CanRemoveProtection}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Pin toggle -->
+                    <Button Content="{Binding PinButtonText}" Command="{Binding TogglePinCommand}"
+                            Height="28" Padding="10,0" Margin="0,0,8,0"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontWeight="Medium" ToolTip="Закрепить или открепить заметку"/>
+
+                    <!-- Favorite toggle -->
+                    <Button Content="{Binding FavoriteButtonText}" Command="{Binding ToggleFavoriteCommand}"
+                            Height="28" Padding="10,0" Margin="0,0,8,0"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontWeight="Medium" ToolTip="Добавить или убрать из избранного"/>
+
+                    <!-- History toggle -->
+                    <Button Content="{Binding HistoryButtonText}" Command="{Binding ToggleHistoryCommand}"
+                            Height="28" Padding="10,0"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontWeight="Medium" ToolTip="{x:Static h:ShortcutCatalog.HistoryToolbarTip}"/>
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <!-- Source info bar and draft recovery banner -->
+        <StackPanel Grid.Row="1">
+            <!-- Draft recovery banner (if uncommitted draft exists) -->
+            <Border Background="{DynamicResource WarningBannerBgBrush}" BorderBrush="{DynamicResource WarningBannerBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="10,6" Margin="0,0,0,10">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasUncommittedDraftRecovery}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="⚠️ Обнаружен несохранённый черновик после сбоя" FontSize="12" Foreground="{DynamicResource WarningBannerFgBrush}" FontWeight="Medium" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="Сравнить и восстановить…" Command="{Binding PromptDraftRecoveryCommand}"
+                                Height="24" Padding="8,0" Margin="0,0,6,0"
+                                Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontSize="11" FontWeight="Medium"/>
+                        <Button Content="Удалить черновик" Command="{Binding DiscardDraftCommand}"
+                                Height="24" Padding="8,0"
+                                Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontSize="11"
+                                AutomationProperties.Name="Удалить черновик"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Source info bar: compact line if present -->
+            <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="10,6" Margin="0,0,0,10">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasSourceText}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Источник: " FontSize="12" Foreground="{DynamicResource MutedBrush}" FontWeight="Medium"/>
+                        <TextBlock Text="{Binding SourceText}" FontSize="12" Foreground="{DynamicResource InkBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding SourceText}"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding CapturedAtText}" FontSize="11" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="10,0,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding CapturedAtText}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Border>
+        </StackPanel>
+
+        <!-- Title field: compact single-line input with placeholder -->
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="10" Padding="10,6" Margin="0,0,0,10">
+            <Grid>
+                <TextBox x:Name="TitleTextBox"
+                         Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+                         FontSize="14"
+                         FontWeight="SemiBold"
+                         FontFamily="Segoe UI, Segoe UI Variable, Arial"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         Foreground="{DynamicResource InkBrush}"
+                         CaretBrush="{DynamicResource InkBrush}"
+                         TabIndex="1"
+                         VerticalAlignment="Center"
+                         ToolTip="Заголовок заметки (необязательно)"/>
+                <TextBlock Text="Без заголовка"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           FontFamily="Segoe UI, Segoe UI Variable, Arial"
+                           Foreground="{DynamicResource MutedBrush}"
+                           IsHitTestVisible="False"
+                           VerticalAlignment="Center"
+                           Margin="2,0,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=TitleTextBox}" Value="">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <!-- Main text editor / Markdown preview with collapsible history panel -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Main text editor / Markdown preview -->
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="5">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Compact Find Bar -->
+                    <Border Grid.Row="0"
+                            Background="{DynamicResource SurfaceAltBrush}"
+                            BorderBrush="{DynamicResource LineBrush}"
+                            BorderThickness="0,0,0,1"
+                            CornerRadius="9,9,0,0"
+                            Padding="8,6"
+                            Margin="0,0,0,4">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFindOpen}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" Text="🔍" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+
+                            <TextBox Grid.Column="1" x:Name="FindInputBox"
+                                     Text="{Binding FindText, UpdateSourceTrigger=PropertyChanged}"
+                                     FontSize="13"
+                                     FontFamily="Segoe UI, Segoe UI Variable, Arial"
+                                     Background="{DynamicResource SurfaceBrush}"
+                                     Foreground="{DynamicResource InkBrush}"
+                                     CaretBrush="{DynamicResource InkBrush}"
+                                     BorderBrush="{DynamicResource LineBrush}"
+                                     BorderThickness="1"
+                                     Padding="6,3"
+                                     VerticalContentAlignment="Center"
+                                     TabIndex="10"
+                                     AutomationProperties.Name="Поиск в заметке"/>
+
+                            <TextBlock Grid.Column="2" Text="{Binding MatchCountText}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource MutedBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="8,0,8,0"
+                                       MinWidth="30"
+                                       TextAlignment="Center"/>
+
+                            <Button Grid.Column="3" Content="▲" Command="{Binding FindPreviousCommand}"
+                                    Width="24" Height="24" Margin="0,0,4,0"
+                                    Background="{DynamicResource ButtonBgBrush}"
+                                    Foreground="{DynamicResource ButtonFgBrush}"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    ToolTip="Предыдущее совпадение (Shift+F3)"
+                                    TabIndex="11"/>
+
+                            <Button Grid.Column="4" Content="▼" Command="{Binding FindNextCommand}"
+                                    Width="24" Height="24" Margin="0,0,6,0"
+                                    Background="{DynamicResource ButtonBgBrush}"
+                                    Foreground="{DynamicResource ButtonFgBrush}"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    ToolTip="Следующее совпадение (F3 / Enter)"
+                                    TabIndex="12"/>
+
+                            <Button Grid.Column="5" Content="✕" Command="{Binding CloseFindCommand}"
+                                    Width="24" Height="24"
+                                    Background="Transparent"
+                                    Foreground="{DynamicResource MutedBrush}"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    ToolTip="Закрыть поиск (Esc)"
+                                    TabIndex="13"/>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Plain-text editor -->
+                        <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True"
+                                 AcceptsTab="False"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 FontSize="15"
+                                 FontFamily="Segoe UI, Segoe UI Variable, Arial"
+                                 Padding="8"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource InkBrush}"
+                                 CaretBrush="{DynamicResource InkBrush}"
+                                 TabIndex="2"
+                                 x:Name="NoteTextBox">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                    <Setter Property="Grid.Column" Value="0"/>
+                                    <Setter Property="Grid.ColumnSpan" Value="3"/>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSplitMode}" Value="True">
+                                            <Setter Property="Grid.ColumnSpan" Value="1"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsPreviewMode}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <!-- Split divider / splitter -->
+                        <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                                      Background="{DynamicResource LineBrush}" ShowsPreview="False" Cursor="SizeWE">
+                            <GridSplitter.Style>
+                                <Style TargetType="GridSplitter">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSplitMode}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </GridSplitter.Style>
+                        </GridSplitter>
+
+                        <!-- Safe Markdown FlowDocument preview -->
+                        <FlowDocumentScrollViewer Document="{Binding PreviewDocument}"
+                                                  IsToolBarVisible="False"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  Background="Transparent"
+                                                  BorderThickness="0"
+                                                  Padding="8"
+                                                  Foreground="{DynamicResource InkBrush}"
+                                                  x:Name="PreviewViewer">
+                            <FlowDocumentScrollViewer.Style>
+                                <Style TargetType="FlowDocumentScrollViewer">
+                                    <Setter Property="Grid.Column" Value="0"/>
+                                    <Setter Property="Grid.ColumnSpan" Value="3"/>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSplitMode}" Value="True">
+                                            <Setter Property="Grid.Column" Value="2"/>
+                                            <Setter Property="Grid.ColumnSpan" Value="1"/>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsPreviewMode}" Value="True">
+                                            <Setter Property="Grid.Column" Value="0"/>
+                                            <Setter Property="Grid.ColumnSpan" Value="3"/>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </FlowDocumentScrollViewer.Style>
+                        </FlowDocumentScrollViewer>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Right side panels (Outline and History) -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <!-- Outline side panel -->
+                <Border Width="260" Margin="10,0,0,0"
+                        Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="10">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsOutlineOpen}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Оглавление" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Content="✕" Command="{Binding ToggleOutlineCommand}"
+                                    Width="22" Height="22" Background="Transparent" Foreground="{DynamicResource MutedBrush}" BorderThickness="0"
+                                    Cursor="Hand" ToolTip="Закрыть оглавление"/>
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding OutlineItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding DataContext.NavigateToOutlineItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Left"
+                                                Padding="4,3" Margin="0,1" Cursor="Hand">
+                                            <StackPanel Orientation="Horizontal" Margin="{Binding IndentMargin}">
+                                                <Border Background="{DynamicResource ButtonBgBrush}" CornerRadius="4" Padding="4,1" Margin="0,0,6,0">
+                                                    <TextBlock Text="{Binding LevelBadge}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource MutedBrush}"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding Title}" FontSize="12" Foreground="{DynamicResource InkBrush}" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- History side panel -->
+                <Border Width="300" Margin="10,0,0,0"
+                    Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="10">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsHistoryOpen}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Header -->
+                        <RowDefinition Height="*"/>    <!-- List of versions -->
+                        <RowDefinition Height="Auto"/> <!-- Selected version preview & restore -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="История версий (до 20)" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="✕" Command="{Binding ToggleHistoryCommand}"
+                                Width="22" Height="22" Background="Transparent" Foreground="{DynamicResource MutedBrush}" BorderThickness="0"
+                                Cursor="Hand" ToolTip="Закрыть панель истории"/>
+                    </Grid>
+
+                    <!-- Empty state -->
+                    <Border Grid.Row="1" Background="Transparent" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="12">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasRevisions}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="История версий пока пуста. Версии сохраняются при создании и редактировании."
+                                   TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource MutedBrush}" TextAlignment="Center"/>
+                    </Border>
+
+                    <!-- Version list -->
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Revisions}" SelectedItem="{Binding SelectedRevision}"
+                             Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.Style>
+                            <Style TargetType="ListBox">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasRevisions}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListBox.Style>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="6,5"/>
+                                <Setter Property="Margin" Value="0,0,0,4"/>
+                                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border CornerRadius="9" Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource CardSelectedBgBrush}"/>
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="2">
+                                    <TextBlock Text="{Binding CreatedAtFormatted}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource InkBrush}"/>
+                                    <TextBlock Text="{Binding DisplayTitle}" FontSize="11" Foreground="{DynamicResource InkBrush}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
+                                    <TextBlock Text="{Binding DiffSummary}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,1,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Selected version details & Restore button -->
+                    <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8"
+                            Padding="8" Margin="0,8,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedRevision}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <TextBlock Text="{Binding SelectedRevision.TagsSummary}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                            <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="4" Padding="4" MaxHeight="80">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <TextBlock Text="{Binding SelectedRevision.Text}" FontSize="11" Foreground="{DynamicResource InkBrush}" TextWrapping="Wrap"/>
+                                </ScrollViewer>
+                            </Border>
+                            <Button Content="⟲ Восстановить эту версию" Command="{Binding RestoreVersionCommand}"
+                                    Height="28" Margin="0,8,0,0"
+                                    Background="{DynamicResource SuccessBannerBgBrush}" Foreground="{DynamicResource SuccessBannerFgBrush}" FontWeight="SemiBold" FontSize="12"
+                                    ToolTip="Восстановить текст и теги из этой версии (создаст новую версию)"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+            </StackPanel>
+        </Grid>
+
+        <!-- Tags area -->
+        <Border x:Name="EditorTagsArea" Grid.Row="4" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="12" Margin="0,10,0,10">
+            <StackPanel>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Теги" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Content="↻ Пересканировать" Command="{Binding RescanCommand}"
+                                Height="26" Padding="10,0" FontSize="12"
+                                Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                ToolTip="Автоматически определить теги по текущему тексту"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Active tags chips -->
+                <ItemsControl ItemsSource="{Binding ActiveTags}" Margin="0,0,0,8">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{DynamicResource BadgeBgBrush}" BorderBrush="{DynamicResource LineMutedBrush}" BorderThickness="1" CornerRadius="12"
+                                    Margin="0,0,7,7" Padding="9,4,6,4"
+                                    ToolTip="{Binding ChipTooltip}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,4,0">
+                                        <TextBlock Text="{Binding TagName}" FontSize="12" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding OriginMarker}" FontSize="10" Foreground="{DynamicResource MutedBrush}" Margin="0,1,0,0"/>
+                                    </StackPanel>
+                                    <Button Content="×"
+                                            Command="{Binding DataContext.RemoveTagCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            Width="18" Height="18" Margin="2,0,0,0"
+                                            Background="Transparent" Foreground="{DynamicResource MutedBrush}" BorderThickness="0"
+                                            FontSize="12" FontWeight="Bold" Cursor="Hand"
+                                            VerticalAlignment="Center"
+                                            ToolTip="Удалить тег"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <StackPanel Margin="0,0,0,8">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSuppressedTags}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="Скрытые автотеги" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,6"/>
+                    <ItemsControl ItemsSource="{Binding SuppressedTags}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineMutedBrush}" BorderThickness="1" CornerRadius="12"
+                                        Margin="0,0,7,7" Padding="9,4,6,4"
+                                        ToolTip="{Binding ChipTooltip}">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,6,0">
+                                            <TextBlock Text="{Binding TagName}" FontSize="12" Foreground="{DynamicResource InkBrush}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding OriginMarker}" FontSize="10" Foreground="{DynamicResource MutedBrush}" Margin="0,1,0,0"/>
+                                        </StackPanel>
+                                        <Button Content="{x:Static h:TagOriginCopy.RestoreAction}"
+                                                Command="{Binding DataContext.RestoreSuppressedTagCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                Height="22" Padding="8,0" FontSize="11"
+                                                Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" BorderThickness="0"
+                                                Cursor="Hand" VerticalAlignment="Center"
+                                                ToolTip="{x:Static h:TagOriginCopy.RestoreAutomationName}"
+                                                AutomationProperties.Name="{x:Static h:TagOriginCopy.RestoreAutomationName}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Add existing tag row -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox ItemsSource="{Binding AvailableTagsToAdd}" SelectedItem="{Binding SelectedTagToAdd}"
+                              DisplayMemberPath="Name"
+                              Height="30" VerticalContentAlignment="Center" FontSize="12"
+                              ToolTip="Выбрать существующий тег для добавления"/>
+
+                    <Button Grid.Column="1" Content="+ Добавить тег" Command="{Binding AddTagCommand}"
+                            Height="30" Padding="12,0" Margin="8,0,0,0"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontWeight="Medium"
+                            ToolTip="Добавить выбранный тег к заметке"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Links area: Outgoing and Incoming links -->
+        <Border Grid.Row="5" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="12,10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Column: Ссылки из заметки -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="Ссылки из заметки" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource InkBrush}" ToolTip="Ссылки на другие заметки, найденные в тексте"/>
+                        <TextBlock Text="{Binding OutgoingLinksCountText}" FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="6,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Empty state -->
+                    <TextBlock Grid.Row="1" Text="Нет ссылок из этой заметки"
+                               FontSize="12" Foreground="{DynamicResource MutedBrush}" FontStyle="Italic" Margin="2,4,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasOutgoingLinks}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- List of outgoing links -->
+                    <ScrollViewer Grid.Row="1" MaxHeight="95" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  ToolTip="Список ссылок из текущей заметки">
+                        <ScrollViewer.Style>
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasOutgoingLinks}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ScrollViewer.Style>
+                        <ItemsControl ItemsSource="{Binding OutgoingLinks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9" Margin="0,0,0,4" Padding="6,3">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Background="{DynamicResource BadgeBgBrush}" CornerRadius="4" Padding="5,2" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding IdText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}"/>
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="12" ToolTip="{Binding TitleTooltip}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+                                                                <Setter Property="FontStyle" Value="Italic"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <Button Grid.Column="2" Content="Открыть" Command="{Binding OpenCommand}"
+                                                    Height="22" Padding="8,0" Margin="6,0,0,0" FontSize="11"
+                                                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                                    ToolTip="{Binding OpenTooltip}" Cursor="Hand">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                                <Setter Property="IsEnabled" Value="False"/>
+                                                                <Setter Property="Opacity" Value="0.5"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- Right Column: Ссылки на заметку -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="Ссылки на заметку" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource InkBrush}" ToolTip="Другие заметки, которые ссылаются на эту заметку"/>
+                        <TextBlock Text="{Binding IncomingLinksCountText}" FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="6,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Empty state -->
+                    <TextBlock Grid.Row="1" Text="{Binding IncomingLinksEmptyText}"
+                               FontSize="12" Foreground="{DynamicResource MutedBrush}" FontStyle="Italic" Margin="2,4,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasIncomingLinks}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- List of incoming links -->
+                    <ScrollViewer Grid.Row="1" MaxHeight="95" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  ToolTip="Список заметок, ссылающихся на данную заметку">
+                        <ScrollViewer.Style>
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasIncomingLinks}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ScrollViewer.Style>
+                        <ItemsControl ItemsSource="{Binding IncomingLinks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9" Margin="0,0,0,4" Padding="6,3">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Background="{DynamicResource BadgeBgBrush}" CornerRadius="4" Padding="5,2" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding IdText}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}"/>
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="12" ToolTip="{Binding TitleTooltip}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                                <Setter Property="Foreground" Value="{DynamicResource MutedBrush}"/>
+                                                                <Setter Property="FontStyle" Value="Italic"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <Button Grid.Column="2" Content="Открыть" Command="{Binding OpenCommand}"
+                                                    Height="22" Padding="8,0" Margin="6,0,0,0" FontSize="11"
+                                                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                                    ToolTip="{Binding OpenTooltip}" Cursor="Hand">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                                <Setter Property="IsEnabled" Value="False"/>
+                                                                <Setter Property="Opacity" Value="0.5"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Truncation notice under the list of incoming links -->
+                    <TextBlock Grid.Row="2"
+                               Text="{Binding IncomingLinksTruncatedText}"
+                               FontSize="11"
+                               Foreground="{DynamicResource MutedBrush}"
+                               TextWrapping="Wrap"
+                               Margin="2,4,0,0"
+                               ToolTip="Показана часть ссылок; уточните текст или сократите число заметок">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsIncomingLinksTruncated}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Attachments area -->
+        <Border Grid.Row="6" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="12,10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header row -->
+                <Grid Grid.Row="0" Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="Вложения" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource InkBrush}" ToolTip="Файлы и изображения, прикреплённые к заметке"/>
+                        <TextBlock Text="{Binding AttachmentsCountText}" FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="6,0,0,0"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="2" Content="+ Прикрепить файл…" Command="{Binding AddAttachmentCommand}"
+                            Height="26" Padding="10,0" FontSize="12"
+                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}" FontWeight="Medium"
+                            ToolTip="Выбрать локальный файл или изображение для прикрепления к заметке"/>
+                </Grid>
+
+                <!-- Empty state when no attachments -->
+                <TextBlock Grid.Row="1" Text="{Binding AttachmentsEmptyText}"
+                           FontSize="12" Foreground="{DynamicResource MutedBrush}" FontStyle="Italic" Margin="2,4,0,0">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasAttachments}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- Attachments list -->
+                <ScrollViewer Grid.Row="1" MaxHeight="120" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              ToolTip="Список прикреплённых файлов">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasAttachments}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+                    <ItemsControl ItemsSource="{Binding Attachments}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9" Margin="0,0,0,4" Padding="6,4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Thumbnail or type badge -->
+                                        <Border Grid.Column="0" Width="32" Height="32" CornerRadius="4" Background="{DynamicResource BadgeBgBrush}" Margin="0,0,8,0" VerticalAlignment="Center" ClipToBounds="True">
+                                            <Grid>
+                                                <TextBlock Text="{Binding TypeBadgeText}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" Width="32" Height="32">
+                                                    <Image.Style>
+                                                        <Style TargetType="Image">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Thumbnail}" Value="{x:Null}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Image.Style>
+                                                </Image>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Name, size, type and status -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding OriginalFileName}" FontWeight="Medium" FontSize="12" Foreground="{DynamicResource InkBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding FullFileNameTooltip}"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                <TextBlock Text="{Binding FormattedSize}" FontSize="11" Foreground="{DynamicResource MutedBrush}" Margin="0,0,8,0"/>
+                                                <TextBlock Text="{Binding DisplayType}" FontSize="11" Foreground="{DynamicResource MutedBrush}" Margin="0,0,8,0" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="• Файл недоступен" FontSize="11" Foreground="{DynamicResource ErrorBannerFgBrush}" FontStyle="Italic">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Actions: Open and Delete -->
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Content="Открыть" Command="{Binding OpenCommand}"
+                                                    Height="24" Padding="8,0" Margin="0,0,4,0" FontSize="11"
+                                                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                                    ToolTip="Открыть вложение в системном приложении" Cursor="Hand">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CanOpen}" Value="False">
+                                                                <Setter Property="IsEnabled" Value="False"/>
+                                                                <Setter Property="Opacity" Value="0.45"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <Button Content="Удалить" Command="{Binding DeleteCommand}"
+                                                    Height="24" Padding="8,0" FontSize="11"
+                                                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ErrorBannerFgBrush}"
+                                                    ToolTip="Удалить вложение из заметки" Cursor="Hand"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Bottom action buttons -->
+        <Grid Grid.Row="7">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Delete / Trash / Restore actions -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <!-- Move to trash button -->
+                <Button Content="В корзину" Command="{Binding MoveToTrashCommand}"
+                        Height="34" Padding="14,0"
+                        Background="{DynamicResource ErrorBannerBgBrush}" Foreground="{DynamicResource ErrorBannerFgBrush}" FontWeight="Medium"
+                        ToolTip="Переместить заметку в корзину">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CanMoveToTrash}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Restore button (when in trash) -->
+                <Button Content="Восстановить" Command="{Binding RestoreCommand}"
+                        Height="34" Padding="14,0" Margin="0,0,8,0"
+                        Background="{DynamicResource SuccessBannerBgBrush}" Foreground="{DynamicResource SuccessBannerFgBrush}" FontWeight="Medium"
+                        ToolTip="Восстановить заметку из корзины">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsInTrash}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <!-- Permanent delete button (when in trash) -->
+                <Button Content="Удалить навсегда" Command="{Binding PermanentDeleteCommand}"
+                        Height="34" Padding="14,0"
+                        Background="{DynamicResource ErrorBannerBgBrush}" Foreground="{DynamicResource ErrorBannerFgBrush}" FontWeight="Medium"
+                        ToolTip="Окончательно удалить заметку без возможности восстановления">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsInTrash}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
+
+            <!-- Save and Cancel buttons -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <Button Content="Не сохранять (Esc)" Command="{Binding CancelCommand}"
+                        Width="150" Height="34" Margin="0,0,10,0"
+                        Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                        ToolTip="Закрыть редактор: сохранить, не сохранять или вернуться (Esc)"/>
+                <Button Content="Сохранить (Ctrl+S)" Command="{Binding SaveCommand}"
+                        Height="34" Padding="16,0"
+                        Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="SemiBold"
+                        ToolTip="Сохранить заметку (Ctrl+S / Ctrl+Enter)"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

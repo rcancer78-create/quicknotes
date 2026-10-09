@@ -1,0 +1,548 @@
+<Window x:Class="QuickNotes.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:h="clr-namespace:QuickNotes.App.Helpers"
+        Title="Настройки"
+        Width="820"
+        Height="780"
+        MinWidth="600"
+        MinHeight="480"
+        SizeToContent="Manual"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{DynamicResource CanvasBrush}">
+    <Grid Margin="16,16,16,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="168"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Row="0" Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="8" Margin="0,0,12,0">
+            <StackPanel>
+                <TextBlock Text="Настройки" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource MutedBrush}" Margin="8,8,8,18"/>
+                <ListBox SelectedIndex="{Binding SettingsSectionIndex}" BorderThickness="0" Background="Transparent"
+                         ToolTip="Основные параметры или облако">
+                    <ListBoxItem Content="Основные" Padding="10,8"/>
+                    <ListBoxItem Content="Облако" Padding="10,8"/>
+                </ListBox>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="0" Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+            <!-- Hotkey Section -->
+            <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="18" Margin="0,0,0,16">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SettingsSectionIndex}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="Глобальные горячие клавиши" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="Используются для работы с выделенным текстом из любого окна Windows."
+                               FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                    <!-- Hotkey 1: Open Editor -->
+                    <TextBlock Text="Открыть редактор с выделенным текстом:" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <CheckBox Content="Ctrl" IsChecked="{Binding HotkeyCtrl}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <CheckBox Content="Shift" IsChecked="{Binding HotkeyShift}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <CheckBox Content="Alt" IsChecked="{Binding HotkeyAlt}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <CheckBox Content="Win" IsChecked="{Binding HotkeyWin}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <TextBlock Text="+" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource MutedBrush}" Margin="0,0,12,0"/>
+                        <ComboBox ItemsSource="{Binding AvailableKeys}" SelectedItem="{Binding SelectedKey}"
+                                  ToolTip="Выбор клавиши для открытия редактора"
+                                  Width="100" Height="30" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Hotkey 2: Instant Save -->
+                    <TextBlock Text="Мгновенно сохранить выделенный текст во Входящие:" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <CheckBox Content="Ctrl" IsChecked="{Binding InstantHotkeyCtrl}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <CheckBox Content="Shift" IsChecked="{Binding InstantHotkeyShift}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <CheckBox Content="Alt" IsChecked="{Binding InstantHotkeyAlt}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <CheckBox Content="Win" IsChecked="{Binding InstantHotkeyWin}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <TextBlock Text="+" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource MutedBrush}" Margin="0,0,12,0"/>
+                        <ComboBox ItemsSource="{Binding AvailableKeys}" SelectedItem="{Binding SelectedInstantKey}"
+                                  ToolTip="Выбор клавиши для мгновенного сохранения"
+                                  Width="100" Height="30" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Hotkey 3: Screen OCR -->
+                    <TextBlock Text="Снимок экрана и распознавание текста:" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,6"/>
+                    <TextBlock Text="По умолчанию Ctrl+Shift+R, чтобы не пересекаться с нумерованным списком в редакторе (Ctrl+Shift+O). Пока каретка в тексте заметки, глобальное OCR-сочетание приостанавливается."
+                               FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <CheckBox Content="Ctrl" IsChecked="{Binding OcrHotkeyCtrl}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <CheckBox Content="Shift" IsChecked="{Binding OcrHotkeyShift}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <CheckBox Content="Alt" IsChecked="{Binding OcrHotkeyAlt}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <CheckBox Content="Win" IsChecked="{Binding OcrHotkeyWin}" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="Medium"/>
+                        <TextBlock Text="+" VerticalAlignment="Center" FontWeight="Bold" Foreground="{DynamicResource MutedBrush}" Margin="0,0,12,0"/>
+                        <ComboBox ItemsSource="{Binding AvailableKeys}" SelectedItem="{Binding SelectedOcrKey}"
+                                  ToolTip="Выбор клавиши для снимка экрана и распознавания текста (OCR)"
+                                  Width="100" Height="30" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="{x:Static h:ShortcutCatalog.EditorShortcutsSummary}"
+                               FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <!-- General App Behavior Section -->
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="18">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SettingsSectionIndex}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="Общие параметры" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,14"/>
+
+                    <CheckBox Content="Запуск вместе с Windows" IsChecked="{Binding RunOnStartup}" Margin="0,0,0,10"/>
+                    <CheckBox Content="Запускать свёрнутым в системный трей" IsChecked="{Binding StartMinimizedToTray}" Margin="0,0,0,10"/>
+                    <CheckBox Content="При закрытии окна оставлять программу в трее"
+                              IsChecked="{Binding PreferCloseToTray}" Margin="0,0,0,10"
+                              ToolTip="Если включено, крестик скрывает окно; QuickNotes остаётся в системном трее. Если выключено, крестик завершает программу."
+                              AutomationProperties.Name="При закрытии окна оставлять программу в трее"/>
+                    <CheckBox Content="Показывать всплывающее уведомление после сохранения" IsChecked="{Binding ShowNotificationOnSave}" Margin="0,0,0,10"
+                              ToolTip="Всплывающее уведомление трея после сохранения заметки"
+                              AutomationProperties.Name="Показывать всплывающее уведомление после сохранения"/>
+                    <CheckBox x:Name="LocalRemindersEnabledCheckBox"
+                              Content="Локальные напоминания о задачах с датой"
+                              IsChecked="{Binding LocalRemindersEnabled}" Margin="0,0,0,6"
+                              ToolTip="Напоминания Windows в 09:00 по местному времени, пока QuickNotes открыт. Без почты и облака."
+                              AutomationProperties.Name="Локальные напоминания о задачах с датой"/>
+                    <TextBlock x:Name="LocalRemindersStatusText"
+                               Text="{Binding LocalRemindersStatusText}"
+                               FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="24,0,0,10"
+                               AutomationProperties.Name="Статус локальных напоминаний"
+                               ToolTip="Состояние локальных напоминаний Windows"/>
+                    <CheckBox Content="Удалять из корзины заметки старше 30 дней при запуске" IsChecked="{Binding AutoPurgeTrashEnabled}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <TextBlock Text="Максимальный размер вложения (МБ):" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="13" Foreground="{DynamicResource InkBrush}"/>
+                        <TextBox Text="{Binding MaxAttachmentSizeMb, UpdateSourceTrigger=PropertyChanged}" Width="70" Height="28" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" ToolTip="Максимальный размер одного вложения в мегабайтах (по умолчанию 25 МБ)"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <TextBlock Text="Шаблоны заметок:" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="13" Foreground="{DynamicResource InkBrush}"/>
+                        <Button Content="Управление шаблонами…" Command="{Binding OpenTemplateManagementCommand}"
+                                Height="28" Padding="12,0" Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                ToolTip="Создание и настройка шаблонов заметок" FontWeight="Medium"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Theme Section -->
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="18" Margin="0,16,0,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SettingsSectionIndex}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="Тема оформления" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="Выберите тему интерфейса приложения. Значение сохраняется между перезапусками."
+                               FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="Тема:" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                        <ComboBox ItemsSource="{Binding AvailableThemes}" SelectedItem="{Binding SelectedThemeItem}"
+                                  DisplayMemberPath="Title" Width="260" Height="30" VerticalContentAlignment="Center"
+                                  ToolTip="Выбор темы оформления приложения"/>
+                    </StackPanel>
+                    <TextBlock Text="При выборе «Системная» тема подстраивается под настройки оформления Windows при запуске приложения."
+                               FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Backup Section -->
+            <Border Grid.Row="3" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="18" Margin="0,16,0,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SettingsSectionIndex}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Резервное копирование" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="Создать резервную копию" Command="{Binding CreateBackupCommand}"
+                                Height="30" Padding="12,0" Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                ToolTip="Создать резервную копию базы данных сейчас"
+                                FontWeight="Medium" Cursor="Hand"/>
+                    </Grid>
+                    <TextBlock Text="{x:Static h:UserTaskCopy.LocalBackupLead}"
+                               FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                    <TextBlock Text="{Binding BackupStatusText}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{x:Static h:UserTaskCopy.PortableArchiveHint}"
+                               FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,10,0,4"/>
+                    <TextBlock Text="{Binding EncryptedArchiveLastSuccessBanner, Mode=OneWay}" FontSize="11" Foreground="{DynamicResource InfoBannerFgBrush}" TextWrapping="Wrap"
+                               ToolTip="Путь и время последнего архива, прошедшего контрольное восстановление recovery key. Не текущий выбор файла."/>
+                </StackPanel>
+            </Border>
+
+            <!-- Cloud Sync Section -->
+            <Border Grid.Row="5" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="18" Margin="0,16,0,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SettingsSectionIndex}" Value="1">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <TextBlock Text="{x:Static h:UserTaskCopy.CloudSectionTitle}" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{x:Static h:UserTaskCopy.CloudSectionLead}"
+                               FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                    <Border Background="{DynamicResource InfoBannerBgBrush}" BorderBrush="{DynamicResource InfoBannerBorderBrush}" BorderThickness="1" CornerRadius="9" Padding="10,8" Margin="0,0,0,12">
+                        <TextBlock Text="{x:Static h:UserTaskCopy.CloudRequirements}"
+                                   FontSize="11" Foreground="{DynamicResource InfoBannerFgBrush}" TextWrapping="Wrap"/>
+                    </Border>
+
+                    <Button x:Name="CloudWizardButton" Content="{x:Static h:UserTaskCopy.CloudWizardButton}"
+                            Command="{Binding OpenCloudSetupWizardCommand}"
+                            Height="32" Padding="14,0" Margin="0,0,0,12" HorizontalAlignment="Left"
+                            Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="SemiBold"
+                            ToolTip="Пошаговое подключение облачных копий. Сложные параметры остаются под «Дополнительно»."
+                            AutomationProperties.Name="{x:Static h:UserTaskCopy.CloudWizardAutomationName}"/>
+
+                    <CheckBox Content="{x:Static h:UserTaskCopy.CloudEnableCheckbox}" IsChecked="{Binding SyncEnabled}" FontWeight="Medium" Margin="0,0,0,12"/>
+
+                    <!-- Encryption Password Sub-section -->
+                    <TextBlock Text="Пароль шифрования копий" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                    <TextBlock Text="{x:Static h:UserTaskCopy.CloudCryptoWarning}"
+                               FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Мастер-пароль шифрования:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                            <PasswordBox x:Name="EncryptionPasswordBox"
+                                         Height="30" VerticalContentAlignment="Center" Padding="6,0"
+                                         ToolTip="Пароль для сквозного шифрования данных. Оставьте пустым, если пароль уже сохранён."/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Подтверждение мастер-пароля:" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                            <PasswordBox x:Name="EncryptionPasswordConfirmBox"
+                                         Height="30" VerticalContentAlignment="Center" Padding="6,0"
+                                         ToolTip="Повторите мастер-пароль для проверки"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Text="{Binding SyncPasswordStatusText}" FontSize="11" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,12"/>
+
+                    <!-- Collapsible Advanced Settings -->
+                    <Expander x:Name="CloudAdvancedExpander" Header="{x:Static h:UserTaskCopy.CloudAdvancedHeader}" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,12" IsExpanded="False">
+                        <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9" Padding="12" Margin="0,8,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Имя бакета (Bucket):" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding SyncBucket, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="30" VerticalContentAlignment="Center" Padding="6,0" Margin="0,0,0,10"
+                                         ToolTip="Имя закрытого бакета в Yandex Object Storage (например, my-quicknotes-bucket)"/>
+
+                                <TextBlock Text="Префикс в бакете (папка, опционально):" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding SyncPrefix, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="30" VerticalContentAlignment="Center" Padding="6,0" Margin="0,0,0,12"
+                                         ToolTip="Папка внутри бакета для изоляции данных (например, quicknotes)"/>
+
+                                <TextBlock Text="Учетные данные доступа S3" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="Ключи хранятся в защищённом хранилище Windows (DPAPI) и никогда не сохраняются в открытом виде."
+                                           FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Идентификатор ключа (Access Key ID):" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                        <TextBox Text="{Binding SyncAccessKeyId, UpdateSourceTrigger=PropertyChanged}"
+                                                 Height="30" VerticalContentAlignment="Center" Padding="6,0"
+                                                 ToolTip="Статический идентификатор ключа доступа Yandex Cloud S3"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Секретный ключ (Secret Key):" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                        <PasswordBox x:Name="SecretAccessKeyBox"
+                                                     Height="30" VerticalContentAlignment="Center" Padding="6,0"
+                                                     ToolTip="Секретный ключ Yandex Cloud S3. Оставьте пустым, если ключ уже сохранён."/>
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Text="{Binding SyncCredentialsStatusText}" FontSize="11" Foreground="{DynamicResource MutedBrush}" Margin="0,0,0,12"/>
+
+                                <TextBlock Text="Автоматические триггеры обмена" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,6"/>
+                                <CheckBox Content="Синхронизировать после сохранения изменений (debounce)" IsChecked="{Binding AutoSyncOnChanges}" Margin="0,0,0,6"/>
+                                <CheckBox Content="Синхронизировать при запуске приложения" IsChecked="{Binding AutoSyncOnStartup}" Margin="0,0,0,6"/>
+                                <WrapPanel Margin="0,0,0,4">
+                                    <CheckBox Content="Фоновый периодический обмен каждые (мин):" IsChecked="{Binding AutoSyncPeriodic}" VerticalAlignment="Center" Margin="0,0,8,4"/>
+                                    <TextBox Text="{Binding PeriodicIntervalMinutes, UpdateSourceTrigger=PropertyChanged}" Width="50" Height="26" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="0,0,8,4"/>
+                                    <TextBlock Text="не чаще одного раза в 15 минут" FontSize="11" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                                </WrapPanel>
+                                <CheckBox Content="Синхронизировать содержимое вложений (отдельные зашифрованные объекты)" IsChecked="{Binding SyncAttachments}" Margin="0,8,0,6"
+                                          ToolTip="При отключении метаданные вложений продолжают синхронизироваться, бинарные файлы в облако не передаются."/>
+                                <DockPanel Margin="0,0,0,12" LastChildFill="False">
+                                    <TextBlock Text="Максимальный размер облачного вложения (МБ):" VerticalAlignment="Center" DockPanel.Dock="Left" FontSize="13" Foreground="{DynamicResource InkBrush}"/>
+                                    <TextBox Text="{Binding MaxAttachmentSyncMb, UpdateSourceTrigger=PropertyChanged}" Width="70" Height="26" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Margin="8,0,0,0" DockPanel.Dock="Left"
+                                             ToolTip="Лимит одного файла при облачной синхронизации (по умолчанию 100 МБ, максимум 1024 МБ). Общая квота бакета настраивается отдельно."/>
+                                </DockPanel>
+
+                                <TextBlock Text="Адрес сервиса (Endpoint):" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding SyncEndpoint, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="30" VerticalContentAlignment="Center" Padding="6,0" Margin="0,0,0,8"
+                                         ToolTip="URL эндпоинта S3 (по умолчанию https://s3.yandexcloud.net)"/>
+
+                                <TextBlock Text="Регион (Region):" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding SyncRegion, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="30" VerticalContentAlignment="Center" Padding="6,0" Margin="0,0,0,6"
+                                         ToolTip="Регион Yandex Cloud (по умолчанию ru-central1)"/>
+
+                                <TextBlock Text="Стандартные параметры Yandex Cloud. Изменяйте только при использовании кастомного прокси или шлюза."
+                                           FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                                <TextBlock Text="Очередь, объём и обслуживание" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,8"/>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Очередь синхронизации:" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SyncQueueStatusText}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource InkBrush}"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Последняя попытка:" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SyncLastAttemptText}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource InkBrush}"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Метрики последнего цикла:" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding SyncMetricsText}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource InkBrush}" TextWrapping="Wrap"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="220"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Занятый объём (префикс QN):" FontSize="12" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding CloudUsageText}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <Button Grid.Column="2" Content="Обновить объём" Command="{Binding RefreshCloudUsageCommand}"
+                                            Height="26" Padding="8,0" FontSize="11" FontWeight="Medium"
+                                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                            ToolTip="Вычислить размер объектов внутри префикса QuickNotes в Object Storage"/>
+                                </Grid>
+                                <TextBlock Text="{Binding CloudQuotaStatusText}" FontSize="11" Foreground="{DynamicResource InkBrush}" TextWrapping="Wrap" Margin="0,6,0,8"/>
+                                <TextBlock Text="{Binding CloudUsageExplanationText}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,6">
+                                    <Button Content="Просмотр очистки вложений" Command="{Binding PreviewCloudCleanupCommand}"
+                                            Height="26" Padding="8,0" FontSize="11" FontWeight="Medium" Margin="0,0,8,0"
+                                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                            ToolTip="Показать недостижимые content-addressed blob без удаления"/>
+                                    <Button Content="Удалить по просмотру…" Command="{Binding ExecuteCloudCleanupCommand}"
+                                            Height="26" Padding="8,0" FontSize="11" FontWeight="Medium"
+                                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                            ToolTip="Удалить только объекты из последнего полного предварительного просмотра после подтверждения"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding CloudCleanupPreviewText}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"/>
+
+                                <TextBlock Text="Старые пакеты и поколения" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,14,0,4"/>
+                                <TextBlock Text="Каждый обмен сохраняет полный снимок. Удаляйте только устаревшие пакеты и старое поколение после ротации пароля — по предварительному просмотру и явному подтверждению. Версионирование бакета не включается."
+                                           FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                <WrapPanel Margin="0,0,0,6">
+                                    <Button Content="Просмотр старых пакетов" Command="{Binding PreviewPackageRetentionCommand}"
+                                            Height="26" Padding="8,0" FontSize="11" FontWeight="Medium" Margin="0,0,8,6"
+                                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"/>
+                                    <Button Content="Удалить пакеты…" Command="{Binding ExecutePackageRetentionCommand}"
+                                            Height="26" Padding="8,0" FontSize="11" FontWeight="Medium" Margin="0,0,8,6"
+                                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"/>
+                                    <Button Content="Просмотр старого поколения" Command="{Binding PreviewOldGenerationCommand}"
+                                            Height="26" Padding="8,0" FontSize="11" FontWeight="Medium" Margin="0,0,8,6"
+                                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"/>
+                                    <Button Content="Удалить старое поколение…" Command="{Binding ExecuteOldGenerationCommand}"
+                                            Height="26" Padding="8,0" FontSize="11" FontWeight="Medium" Margin="0,0,0,6"
+                                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"/>
+                                </WrapPanel>
+                                <TextBlock Text="{Binding CloudRetentionStatusText}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"/>
+
+                                <TextBlock Text="Ротация мастер-пароля" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,14,0,4"/>
+                                <TextBlock Text="Перешифровывает текущие пакеты и вложения в новое поколение и атомарно переключает служебный указатель. Старое поколение не удаляется автоматически."
+                                           FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Текущий пароль:" FontSize="11" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                        <PasswordBox x:Name="RotationOldPasswordBox" Height="28" VerticalContentAlignment="Center" Padding="6,0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Новый пароль:" FontSize="11" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                        <PasswordBox x:Name="RotationNewPasswordBox" Height="28" VerticalContentAlignment="Center" Padding="6,0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="4">
+                                        <TextBlock Text="Подтверждение:" FontSize="11" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,4"/>
+                                        <PasswordBox x:Name="RotationNewPasswordConfirmBox" Height="28" VerticalContentAlignment="Center" Padding="6,0"/>
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <Button Content="Просмотр ротации" Command="{Binding PreviewPasswordRotationCommand}"
+                                            Height="26" Padding="8,0" FontSize="11" FontWeight="Medium" Margin="0,0,8,0"
+                                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"/>
+                                    <Button Content="Сменить пароль…" Command="{Binding ExecutePasswordRotationCommand}"
+                                            Height="26" Padding="8,0" FontSize="11" FontWeight="Medium"
+                                            Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding PasswordRotationStatusText}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Expander>
+
+                    <!-- Action Buttons for Sync -->
+                    <WrapPanel Margin="0,0,0,10">
+                        <Button Content="{x:Static h:UserTaskCopy.CloudTestButton}" Command="{Binding TestConnectionCommand}"
+                                Height="30" Padding="12,0" Margin="0,0,8,6"
+                                Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                ToolTip="Проверить доступ к облачным копиям без сохранения" FontWeight="Medium"/>
+
+                        <Button Content="{x:Static h:UserTaskCopy.CloudSaveButton}" Command="{Binding SaveSyncSettingsCommand}"
+                                Height="30" Padding="12,0" Margin="0,0,8,6"
+                                Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                ToolTip="Сохранить параметры облачных копий" FontWeight="Medium"/>
+
+                        <Button Content="{x:Static h:UserTaskCopy.CloudDisconnectButton}" Command="{Binding DeleteSyncCredentialsCommand}"
+                                MinWidth="200" Height="30" Padding="12,0" Margin="0,0,0,6"
+                                Background="{DynamicResource ErrorBannerBgBrush}" Foreground="{DynamicResource ErrorBannerFgBrush}"
+                                ToolTip="Удалить сохранённые ключи и выключить облачные копии" FontWeight="Medium"/>
+                    </WrapPanel>
+
+                    <!-- Sync Connection Status Banner -->
+                    <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9" Padding="10,8" Margin="0,0,0,4">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasConnectionStatusText}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding SyncConnectionStatusText}" FontSize="12" FontWeight="Medium" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsConnectionSuccess}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource SuccessBannerFgBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsConnectionWarning}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource WarningBannerFgBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsConnectionError}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource ErrorBannerFgBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+
+                    <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9" Padding="12,10" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Состояние копий" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InkBrush}" Margin="0,0,0,8"/>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Ожидают отправки:" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SyncQueueStatusText}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource InkBrush}"/>
+                            </Grid>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Последняя успешная копия:" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SyncLastSuccessText}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource InkBrush}"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="220"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Нужно разобрать:" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding SyncConflictsCountText}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource InkBrush}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            </Grid>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="Отмена" Command="{Binding CancelCommand}"
+                    Width="100" Height="34" Margin="0,0,10,0"
+                    ToolTip="Отменить изменения настроек"
+                    Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"/>
+            <Button Content="Сохранить" Command="{Binding SaveCommand}" IsDefault="True"
+                    Width="120" Height="34"
+                    ToolTip="Сохранить настройки"
+                    Background="{DynamicResource AccentBrush}" Foreground="White" FontWeight="SemiBold"/>
+        </StackPanel>
+    </Grid>
+</Window>

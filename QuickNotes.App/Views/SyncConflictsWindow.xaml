@@ -1,0 +1,351 @@
+<Window x:Class="QuickNotes.App.Views.SyncConflictsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Разрешение конфликтов синхронизации"
+        Width="780" Height="720"
+        MinWidth="640" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{DynamicResource CanvasBrush}"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        AutomationProperties.Name="Окно разрешения конфликтов синхронизации">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8"
+                AutomationProperties.Name="Заголовок разрешения конфликтов">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Разрешение конфликтов синхронизации" FontWeight="SemiBold" FontSize="15" Foreground="{DynamicResource InkBrush}"/>
+                    <TextBlock Text="Ни одна сторона не выбирается по умолчанию. Решение применяется только после явной команды."
+                               FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                </StackPanel>
+                <Button x:Name="ConflictRefreshButton" Grid.Column="1" Content="Обновить" Command="{Binding RefreshCommand}"
+                        Height="28" Padding="10,0" Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                        FontWeight="Medium" VerticalAlignment="Center"
+                        AutomationProperties.Name="Обновить список конфликтов"
+                        ToolTip="Обновить список конфликтов"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" MinWidth="140" MaxWidth="280"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="6">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="Конфликты" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource InkBrush}" Margin="4,2,4,6"/>
+                    <ListBox x:Name="ConflictListBox" Grid.Row="1" ItemsSource="{Binding Conflicts}" SelectedItem="{Binding SelectedConflict}"
+                             Background="Transparent" BorderThickness="0"
+                             AutomationProperties.Name="Список неразрешённых конфликтов"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="6,4"/>
+                                <Setter Property="Margin" Value="0,1"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Focusable" Value="True"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource InkBrush}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding EntityTypeDisplay}" FontSize="10" Foreground="{DynamicResource MutedBrush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"
+                          AutomationProperties.Name="Разделитель списка и сравнения конфликтов"/>
+
+            <Border Grid.Column="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Border x:Name="ConflictSuccessSummaryPanel" Background="{DynamicResource InfoBannerBgBrush}" BorderBrush="{DynamicResource InfoBannerBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="12"
+                            VerticalAlignment="Center" AutomationProperties.Name="Итог успешного разрешения конфликта">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasCompletedResolution}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock x:Name="ConflictSuccessSummaryText" Text="{Binding SuccessSummary}" TextWrapping="Wrap" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource InfoBannerFgBrush}"/>
+                    </Border>
+
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding SelectedConflict}" Value="{x:Null}"/>
+                                            <Condition Binding="{Binding HasCompletedResolution}" Value="False"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="Конфликт не выбран" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Выберите элемент слева, чтобы сравнить локальную и облачную версии."
+                                   FontSize="12" Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" HorizontalAlignment="Center" TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <ScrollViewer x:Name="ConflictDetailScroll" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ScrollViewer.Style>
+                            <Style TargetType="ScrollViewer">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowComparePane}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ScrollViewer.Style>
+                        <StackPanel>
+                            <Border Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8"
+                                    AutomationProperties.Name="Причина и происхождение конфликта">
+                                <StackPanel>
+                                    <TextBlock x:Name="ConflictTitleText" Text="{Binding SelectedConflict.Title}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource InkBrush}" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="ConflictReasonText" Text="{Binding SelectedConflict.ReasonDisplay}" FontSize="11" Foreground="{DynamicResource MutedBrush}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MinWidth="160"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*" MinWidth="160"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border x:Name="LocalVersionColumn" Grid.Column="0" Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="6" Padding="8"
+                                        AutomationProperties.Name="Локальная версия конфликта">
+                                    <StackPanel>
+                                        <TextBlock Text="Локальная версия (на этом ПК)" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource InfoBannerFgBrush}"/>
+                                        <TextBlock x:Name="LocalTitleText" Text="{Binding SelectedConflict.Detail.LocalTitle}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource InkBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                        <TextBlock x:Name="LocalDeviceText" Text="{Binding SelectedConflict.LocalDeviceDisplay}" FontSize="11" Foreground="{DynamicResource MutedBrush}" Margin="0,2,0,0"/>
+                                        <TextBlock x:Name="LocalTimeText" Text="{Binding SelectedConflict.LocalUpdatedDisplay}" FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
+                                        <Border Background="{DynamicResource WarningBannerBgBrush}" BorderBrush="{DynamicResource WarningBannerBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,6,0,0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedConflict.Detail.IsLocalCorrupted}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="Не удалось прочитать содержимое версии" FontSize="11" Foreground="{DynamicResource WarningBannerFgBrush}" TextWrapping="Wrap"/>
+                                        </Border>
+                                        <Border Background="{DynamicResource WarningBannerBgBrush}" BorderBrush="{DynamicResource WarningBannerBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,6,0,0"
+                                                x:Name="ProtectedLocalBanner">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedConflict.Detail.LocalIsProtected}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding SelectedConflict.Detail.LocalProtectionNotice}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource WarningBannerFgBrush}"/>
+                                        </Border>
+                                        <TextBox x:Name="LocalBodyBox" Text="{Binding SelectedConflict.Detail.LocalText, Mode=OneWay}"
+                                                 IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="64" MaxHeight="120"
+                                                 VerticalScrollBarVisibility="Auto" Margin="0,6,0,0"
+                                                 Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource InputFgBrush}"
+                                                 BorderBrush="{DynamicResource InputBorderBrush}" FontSize="12"
+                                                 AutomationProperties.Name="Текст локальной версии, только чтение"/>
+                                        <ItemsControl ItemsSource="{Binding SelectedConflict.Detail.LocalTags}" Margin="0,6,0,0"
+                                                      AutomationProperties.Name="Теги локальной версии">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{DynamicResource BadgeBgBrush}" CornerRadius="8" Margin="0,2,4,2" Padding="6,1">
+                                                        <TextBlock Text="{Binding}" FontSize="10" Foreground="{DynamicResource BadgeFgBrush}"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <ItemsControl ItemsSource="{Binding SelectedConflict.Detail.LocalAttachmentNames}" Margin="0,4,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" FontSize="10" Foreground="{DynamicResource MutedBrush}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border x:Name="RemoteVersionColumn" Grid.Column="2" Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="6" Padding="8"
+                                        AutomationProperties.Name="Облачная версия конфликта">
+                                    <StackPanel>
+                                        <TextBlock Text="Облачная версия (с другого ПК)" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource WarningBannerFgBrush}"/>
+                                        <TextBlock x:Name="RemoteTitleText" Text="{Binding SelectedConflict.Detail.RemoteTitle}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource InkBrush}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                        <TextBlock x:Name="RemoteDeviceText" Text="{Binding SelectedConflict.RemoteDeviceDisplay}" FontSize="11" Foreground="{DynamicResource MutedBrush}" Margin="0,2,0,0"/>
+                                        <TextBlock x:Name="RemoteTimeText" Text="{Binding SelectedConflict.RemoteUpdatedDisplay}" FontSize="11" Foreground="{DynamicResource MutedBrush}"/>
+                                        <Border Background="{DynamicResource WarningBannerBgBrush}" BorderBrush="{DynamicResource WarningBannerBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6" Margin="0,6,0,0"
+                                                x:Name="ProtectedRemoteBanner">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedConflict.Detail.RemoteIsProtected}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding SelectedConflict.Detail.RemoteProtectionNotice}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource WarningBannerFgBrush}"/>
+                                        </Border>
+                                        <TextBox x:Name="RemoteBodyBox" Text="{Binding SelectedConflict.Detail.RemoteText, Mode=OneWay}"
+                                                 IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="64" MaxHeight="120"
+                                                 VerticalScrollBarVisibility="Auto" Margin="0,6,0,0"
+                                                 Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource InputFgBrush}"
+                                                 BorderBrush="{DynamicResource InputBorderBrush}" FontSize="12"
+                                                 AutomationProperties.Name="Текст облачной версии, только чтение"/>
+                                        <ItemsControl ItemsSource="{Binding SelectedConflict.Detail.RemoteTags}" Margin="0,6,0,0"
+                                                      AutomationProperties.Name="Теги облачной версии">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{DynamicResource BadgeBgBrush}" CornerRadius="8" Margin="0,2,4,2" Padding="6,1">
+                                                        <TextBlock Text="{Binding}" FontSize="10" Foreground="{DynamicResource BadgeFgBrush}"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <TextBlock Text="{Binding SelectedConflict.Detail.AttachmentsRuleDisplay}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                            <Border x:Name="ManualMergePanel" Background="{DynamicResource SurfaceAltBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,8,0,0"
+                                    AutomationProperties.Name="Ручное объединение Markdown">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedConflict.ShowManualMerge}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel>
+                                    <TextBlock Text="Ручное объединение: колонки слева и справа только для чтения. Редактируется только итоговый Markdown." FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource InkBrush}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding SelectedConflict.Detail.MergeMetadataRuleDisplay}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="0,4,0,6"/>
+                                    <WrapPanel Margin="0,0,0,6">
+                                        <TextBlock Text="Заголовок:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource InkBrush}" FontSize="11"/>
+                                        <RadioButton x:Name="MergeTitleLocalRadio" Content="Локальный" GroupName="MergeTitle" IsChecked="{Binding UseLocalTitle}" Margin="0,0,8,0"
+                                                     AutomationProperties.Name="Взять локальный заголовок при объединении"/>
+                                        <RadioButton x:Name="MergeTitleRemoteRadio" Content="Облачный" GroupName="MergeTitle" IsChecked="{Binding UseRemoteTitle}"
+                                                     AutomationProperties.Name="Взять облачный заголовок при объединении"/>
+                                    </WrapPanel>
+                                    <WrapPanel Margin="0,0,0,6">
+                                        <TextBlock Text="Теги:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource InkBrush}" FontSize="11"/>
+                                        <RadioButton x:Name="MergeTagsLocalRadio" Content="Локальные" GroupName="MergeTags" IsChecked="{Binding UseLocalTags}" Margin="0,0,8,0"
+                                                     AutomationProperties.Name="Взять локальные теги при объединении"/>
+                                        <RadioButton x:Name="MergeTagsRemoteRadio" Content="Облачные" GroupName="MergeTags" IsChecked="{Binding UseRemoteTags}"
+                                                     AutomationProperties.Name="Взять облачные теги при объединении"/>
+                                    </WrapPanel>
+                                    <TextBox x:Name="MergeEditorBox" Text="{Binding MergedText, UpdateSourceTrigger=PropertyChanged}"
+                                             AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48" Height="64"
+                                             VerticalScrollBarVisibility="Auto" Padding="6"
+                                             Background="{DynamicResource InputBgBrush}" Foreground="{DynamicResource InputFgBrush}"
+                                             BorderBrush="{DynamicResource InputBorderBrush}" FontSize="12"
+                                             AutomationProperties.Name="Редактор объединённого Markdown"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <WrapPanel x:Name="ConflictActionsPanel" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                <Button x:Name="KeepBothButton" Content="Оставить обе" Command="{Binding KeepBothCommand}"
+                                        Height="30" Padding="10,0" Margin="0,0,6,4"
+                                        Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                        FontWeight="Medium" IsDefault="False"
+                                        AutomationProperties.Name="Оставить обе версии"
+                                        ToolTip="Оставить локальную версию и сохранить облачную как отдельную заметку (Alt+B)"/>
+                                <Button x:Name="KeepLocalButton" Content="Оставить локальную" Command="{Binding KeepLocalCommand}"
+                                        Height="30" Padding="10,0" Margin="0,0,6,4"
+                                        Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                        FontWeight="Medium" IsDefault="False"
+                                        AutomationProperties.Name="Оставить локальную версию"
+                                        ToolTip="Сохранить локальную версию и отклонить облачную (Alt+L)"/>
+                                <Button x:Name="KeepRemoteButton" Content="Оставить облачную" Command="{Binding AcceptRemoteCommand}"
+                                        Height="30" Padding="10,0" Margin="0,0,6,4"
+                                        Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                        FontWeight="Medium" IsDefault="False"
+                                        AutomationProperties.Name="Оставить облачную версию"
+                                        ToolTip="Заменить локальную версию облачной (Alt+R)"/>
+                                <Button x:Name="MergeButton" Content="Объединить" Command="{Binding MergeCommand}"
+                                        Height="30" Padding="10,0" Margin="0,0,0,4"
+                                        Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                                        FontWeight="Medium" IsDefault="False"
+                                        AutomationProperties.Name="Применить ручное объединение Markdown"
+                                        ToolTip="Применить итоговый Markdown после явного выбора заголовка и тегов (Alt+M)">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedConflict.CanMerge}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </WrapPanel>
+        <Grid Grid.Row="3" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="ConflictStatusText" Grid.Column="0" Text="{Binding StatusMessage}" FontSize="12" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap"
+                       AutomationProperties.Name="Статус разрешения конфликтов"/>
+            <Button x:Name="ConflictCloseButton" Grid.Column="1" Content="Закрыть" Command="{Binding CloseCommand}"
+                    Width="96" Height="30" Background="{DynamicResource ButtonBgBrush}" Foreground="{DynamicResource ButtonFgBrush}"
+                    FontWeight="Medium" IsCancel="True"
+                    AutomationProperties.Name="Закрыть окно конфликтов"/>
+        </Grid>
+    </Grid>
+</Window>

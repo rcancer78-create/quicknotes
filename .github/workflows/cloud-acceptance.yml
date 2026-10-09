@@ -1,0 +1,185 @@
+name: Cloud acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Test scenario to run: Smoke, Acceptance, or All (Smoke then Acceptance, separate TRX files). Smoke is not run twice.'
+        required: true
+        default: 'Smoke'
+        type: choice
+        options:
+          - Smoke
+          - Acceptance
+          - All
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-acceptance
+  cancel-in-progress: false
+
+jobs:
+  cloud-acceptance:
+    name: Yandex S3 acceptance
+    runs-on: windows-latest
+    timeout-minutes: 30
+    environment: cloud-acceptance
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - name: Validate required secrets
+        shell: pwsh
+        run: |
+          $missing = @()
+          if ([string]::IsNullOrWhiteSpace($env:S3_ACCESS_KEY_ID))   { $missing += 'S3_ACCESS_KEY_ID' }
+          if ([string]::IsNullOrWhiteSpace($env:S3_SECRET_ACCESS_KEY)) { $missing += 'S3_SECRET_ACCESS_KEY' }
+          if ([string]::IsNullOrWhiteSpace($env:S3_ENDPOINT))        { $missing += 'S3_ENDPOINT' }
+          if ([string]::IsNullOrWhiteSpace($env:S3_BUCKET))          { $missing += 'S3_BUCKET' }
+          if ($missing.Count -gt 0) {
+            Write-Error "::error::Missing required secrets/variables: $($missing -join ', '). Configure them in the 'cloud-acceptance' environment."
+            exit 1
+          }
+          Write-Output 'All required secrets/variables are present.'
+        env:
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Clean restore
+        run: |
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.App\bin") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.App\bin" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.App\obj") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.App\obj" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.Tests\bin") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.Tests\bin" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.Tests\obj") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.Tests\obj" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.Tools\bin") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.Tools\bin" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\QuickNotes.Tools\obj") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\QuickNotes.Tools\obj" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\artifacts\ci") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\artifacts\ci" }
+          if (Test-Path "$env:GITHUB_WORKSPACE\TestResults") { Remove-Item -Recurse -Force "$env:GITHUB_WORKSPACE\TestResults" }
+          dotnet restore "$env:GITHUB_WORKSPACE\QuickNotes.sln" --force
+
+      - name: Build
+        run: dotnet build "$env:GITHUB_WORKSPACE\QuickNotes.sln" -c Release --no-restore -warnaserror
+
+      - name: Encrypt credentials for test runner
+        shell: pwsh
+        run: |
+          $credDir = Join-Path $env:RUNNER_TEMP 'qn-cloud-creds'
+          New-Item -ItemType Directory -Force -Path $credDir | Out-Null
+          $credJson = Join-Path $credDir 'creds.json'
+          $credDat = Join-Path $credDir 'creds.dat'
+          @{ AccessKeyId = $env:S3_ACCESS_KEY_ID; SecretAccessKey = $env:S3_SECRET_ACCESS_KEY } |
+            ConvertTo-Json |
+            Set-Content -LiteralPath $credJson -Encoding utf8
+          & dotnet run --project "$env:GITHUB_WORKSPACE\QuickNotes.Tools\QuickNotes.Tools.csproj" -c Release --no-build -- encrypt-credentials $credJson $credDat
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error 'Failed to DPAPI-encrypt credentials on runner.'
+            exit 1
+          }
+          Remove-Item -LiteralPath $credJson -Force
+          Write-Output "CREDENTIALS_DAT=$credDat" >> $env:GITHUB_ENV
+        env:
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+
+      - name: Run smoke
+        if: ${{ inputs.scenario == 'Smoke' || inputs.scenario == 'All' }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\artifacts\ci\cloud-acceptance" | Out-Null
+          pwsh -NoProfile -File "$env:GITHUB_WORKSPACE\scripts\Run-YandexCloudLiveSmoke.ps1" `
+            -Configuration Release `
+            -Scenario Smoke `
+            -CredentialsPath $env:CREDENTIALS_DAT `
+            -Endpoint $env:QUICKNOTES_LIVE_S3_ENDPOINT `
+            -Bucket $env:QUICKNOTES_LIVE_S3_BUCKET `
+            -ResultsDirectory "$env:GITHUB_WORKSPACE\artifacts\ci\cloud-acceptance" `
+            -TrxLogFileName cloud-smoke.trx `
+            -SanitizedReportFileName cloud-smoke.md `
+            -NoRestore `
+            -NoBuild `
+            -BlameHangTimeout 2m
+        env:
+          QUICKNOTES_LIVE_S3_REQUIRED: '1'
+          QUICKNOTES_LIVE_S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
+          QUICKNOTES_LIVE_S3_BUCKET: ${{ vars.S3_BUCKET }}
+
+      - name: Run acceptance
+        if: ${{ inputs.scenario == 'Acceptance' || inputs.scenario == 'All' }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\artifacts\ci\cloud-acceptance" | Out-Null
+          pwsh -NoProfile -File "$env:GITHUB_WORKSPACE\scripts\Run-YandexCloudLiveAcceptance.ps1" `
+            -Configuration Release `
+            -CredentialsPath $env:CREDENTIALS_DAT `
+            -Endpoint $env:QUICKNOTES_LIVE_S3_ENDPOINT `
+            -Bucket $env:QUICKNOTES_LIVE_S3_BUCKET `
+            -ResultsDirectory "$env:GITHUB_WORKSPACE\artifacts\ci\cloud-acceptance" `
+            -TrxLogFileName cloud-acceptance.trx `
+            -SanitizedReportFileName cloud-acceptance.md `
+            -NoRestore `
+            -NoBuild `
+            -BlameHangTimeout 2m
+        env:
+          QUICKNOTES_LIVE_S3_REQUIRED: '1'
+          QUICKNOTES_LIVE_S3_ENDPOINT: ${{ vars.S3_ENDPOINT }}
+          QUICKNOTES_LIVE_S3_BUCKET: ${{ vars.S3_BUCKET }}
+
+      - name: Category summary
+        if: always()
+        shell: pwsh
+        run: |
+          $trxDir = "$env:GITHUB_WORKSPACE\artifacts\ci\cloud-acceptance"
+          if (Test-Path -LiteralPath $trxDir) {
+            pwsh -NoProfile -File "$env:GITHUB_WORKSPACE\scripts\Write-TestCategorySummary.ps1" `
+              -TrxDirectory $trxDir `
+              -OutputPath "$trxDir\category-summary.md"
+          } else {
+            Write-Output 'No TRX directory found; skipping summary.'
+          }
+
+      - name: Upload cloud acceptance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-acceptance-results
+          path: |
+            artifacts/ci/cloud-acceptance/cloud-smoke.trx
+            artifacts/ci/cloud-acceptance/cloud-acceptance.trx
+            artifacts/ci/cloud-acceptance/cloud-smoke.md
+            artifacts/ci/cloud-acceptance/cloud-acceptance.md
+            artifacts/ci/cloud-acceptance/category-summary.md
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Cleanup credentials
+        if: always()
+        shell: pwsh
+        run: |
+          # Best-effort only. if: always() runs after upload on success, failure, and
+          # cooperative cancellation. Hard cancellation or runner loss can skip this
+          # step. Credentials stay under isolated RUNNER_TEMP (qn-cloud-creds) and are
+          # never placed on the artifact allowlist.
+          $credDir = Join-Path $env:RUNNER_TEMP 'qn-cloud-creds'
+          if (Test-Path -LiteralPath $credDir) {
+            Get-ChildItem -LiteralPath $credDir -File -Force | ForEach-Object {
+              try {
+                [System.IO.File]::WriteAllBytes($_.FullName, [byte[]]::new(128))
+                Remove-Item -LiteralPath $_.FullName -Force
+              } catch { }
+            }
+            Remove-Item -LiteralPath $credDir -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          Write-Output 'Credentials cleanup attempted (best-effort).'
